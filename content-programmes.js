@@ -284,7 +284,7 @@
     const mine = el.r1.find(c => c.id === S.me);
     const out = el.r2.some(c => c.id === S.me) ? "" : ` Tu as été éliminé dès le premier tour, avec ${Math.round(mine.pct)} %.`;
     if (el.winner === S.me) return "";
-    if (kept >= 3) return `Tu avais tenu ${kept} promesses sur ${n}. Ça n’a pas suffi : le pays, lui, a glissé ailleurs.${out}`;
+    if (kept >= 3) return `Tu avais tenu ${kept} promesses sur ${n}. Ça n’a pas suffi : ${S.overton > 25 ? "le pays, lui, avait glissé ailleurs." : "être fidèle ne fait pas une majorité."}${out}`;
     let why = "Tes électeurs sont allés voir ailleurs.";
     if (el.winner === "RH" && S.overton > 25) why = "En reprenant ses idées, tu lui as ouvert la porte. Steeve Frontière t’a remercié dans son discours de victoire.";
     else if (el.winner === "RH") why = "Tu as écrasé la rue ; la peur a voté pour lui.";
