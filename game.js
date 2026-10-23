@@ -18,6 +18,7 @@
   const MAJ = 289;                  // majorité absolue à l'Assemblée
   const ECO_DRIFT = 8;              // dette écologique ajoutée chaque semaine si on ne fait rien
   const VOTE_COST = 5, COST_493 = 8;
+  const DND_RECHARGE = 120;         // % de batterie récupérés par semaine en mode Ne pas déranger
   const GBY = {};
   C.groups.forEach(g => { GBY[g.id] = g; });
   const LAW = {};
@@ -49,8 +50,9 @@
       ordre: 60, budget: 60, colere: 30, eco: 40,
       rel: Object.fromEntries(C.groups.map(g => [g.id, g.rel])),
       laws: {}, n493: 0, lastCensure: 0, revokePct: 0, pendingEnd: null, altUsed: {}, alerts: {},
+      dnd: null, dndWeek: 0, dndUsed: {}, cposts: {},
       flags: {},
-      stats: { blesses: 0, gav: 0, fuites: 0, ignores: 0, feries: 0, lois: 0 },
+      stats: { blesses: 0, gav: 0, fuites: 0, ignores: 0, feries: 0, lois: 0, dnd: 0 },
       convs: {}, seq: 1,
       feed: [], feedUnread: 0, news: [], newsUnread: 0,
       spawned: {}, sched: [], poolUsed: {},
@@ -140,7 +142,8 @@
       const speed = S.call ? 1 : S.speed;
       const dw = dt * speed / WEEK_MS;
       S.t += dw;
-      drain(dw * PASSIVE_DRAIN);
+      if (S.dnd) S.battery = Math.min(100, S.battery + dw * DND_RECHARGE);
+      else drain(dw * PASSIVE_DRAIN);
       spawn();
       if (!S.ending) {
         const end = checkEnd();
@@ -148,6 +151,11 @@
       }
       if (S.running && S.t >= 1) endWeek();
       updateStatus();
+      if (S.dnd) {
+        const ck = $("#dnd-clock"), bt = $("#dnd-batt");
+        if (ck) ck.textContent = clockText();
+        if (bt) bt.textContent = `${Math.floor(S.battery)}%`;
+      }
     }
     requestAnimationFrame(tick);
   }
@@ -160,8 +168,20 @@
       if (e.alt && S.altUsed[e.alt]) continue;
       if (!e.when || e.when(S)) { if (e.alt) S.altUsed[e.alt] = true; deliver(e); }
     }
+    for (const p of C.citizenPosts) {
+      if (p.w !== S.week || S.cposts[p.id] || p.at > S.t) continue;
+      S.cposts[p.id] = true;
+      if (p.when && !p.when(S)) continue;
+      addPost({ h: p.h, t: p.t });
+      apply({ fx: p.fx, set: p.set, news: p.news });
+    }
+    if (S.dnd && S.t >= S.dnd.nextAct) {
+      S.dnd.nextAct = S.t + rnd(0.07, 0.11);
+      ministerAct();
+    }
     for (const a of C.alerts) {
-      if (S.alerts[a.id] || S.dead || !a.when(S)) continue;
+      // une alerte attend que tu sois réveillé
+      if (S.alerts[a.id] || S.dead || S.dnd || !a.when(S)) continue;
       const cv = S.convs[val(a.from)];
       if (cv && cv.pending) continue; // on attend que le contact soit libre
       S.alerts[a.id] = true;
@@ -192,6 +212,7 @@
   // ------------------------------------------------------------------ messages
   function deliver(e) {
     if (e.call) {
+      if (S.dnd) { missedWhileDead(e, "📞 Appel filtré (Ne pas déranger)"); dndLog(contact(val(e.from)), (e.d && e.d.r) || "Appel filtré."); return; }
       if (S.call || S.dead) { if (!S.dead) S.sched.push({ w: S.week, at: S.t + 0.04, kind: "ev", id: e.id }); else missedWhileDead(e); return; }
       startCall(e);
       return;
@@ -206,6 +227,13 @@
     cv.unread += msgs.length;
     cv.last = S.seq++;
     cv.lastText = msgs[msgs.length - 1];
+    if (S.dnd) {
+      ignore(cid, "🌙 Ne pas déranger : tes ministres ont géré");
+      const d = e.d || {};
+      dndLog(contact(cid), d.r || "Classé sans suite.");
+      refresh();
+      return;
+    }
     if (!S.dead) {
       S.speed = 1;
       buzz();
@@ -214,10 +242,10 @@
     refresh();
   }
 
-  function missedWhileDead(e) {
+  function missedWhileDead(e, label) {
     const cid = val(e.from);
     const cv = conv(cid);
-    cv.msgs.push({ k: "sys", text: "📞 Appel manqué (téléphone éteint)", d: S.week * 10 + dayIdx() });
+    cv.msgs.push({ k: "sys", text: label || "📞 Appel manqué (téléphone éteint)", d: S.week * 10 + dayIdx() });
     const d = e.d || {};
     if (d.r) cv.msgs.push({ k: "them", text: d.r });
     cv.lastText = "Appel manqué"; cv.last = S.seq++; cv.unread++;
@@ -225,13 +253,13 @@
     apply(d);
   }
 
-  function ignore(cid) {
+  function ignore(cid, label) {
     const cv = S.convs[cid];
     const e = EV[cv.pending];
     cv.pending = null;
     if (!e) return;
     S.stats.ignores++; S.ignoredWeek++;
-    cv.msgs.push({ k: "sys", text: "Sans réponse" });
+    cv.msgs.push({ k: "sys", text: label || "Sans réponse" });
     const d = e.d || {};
     if (d.r) { cv.msgs.push({ k: "them", text: d.r }); cv.lastText = d.r; }
     apply(d);
@@ -405,7 +433,7 @@
   // ------------------------------------------------------------------ semaines
   function startWeek(w) {
     S.week = w; S.t = 0; S.battery = 100; S.dead = false; S.deadAt = null; S.lowWarned = false;
-    S.speed = 1; S.posted = false; S.ignoredWeek = 0; S.leaksWeek = 0; S.nextAmb = rnd(0.03, 0.07);
+    S.speed = 1; S.posted = false; S.ignoredWeek = 0; S.leaksWeek = 0; S.nextAmb = rnd(0.03, 0.07); S.dndWeek = 0;
     S.weekStart = { g: { ...S.g }, ordre: S.ordre, budget: S.budget, eco: S.eco, pop: pop() };
     $("#dead").hidden = true;
     if (w >= 2) {
@@ -435,6 +463,7 @@
   function endWeek() {
     S.running = false;
     S.t = 1;
+    if (S.dnd) stopDnd(true);
     if (S.call && S.call.phase !== "end") missCall(true);
     S.call = null;
     $("#call").hidden = true;
@@ -498,6 +527,7 @@
     if (L.when && !L.when(S)) { S.laws[L.id] = { status: "skip", w: S.week }; return; }
     S.laws[L.id] = { status: "pending", w: S.week, seq: S.seq++ };
     const g = GBY[L.by];
+    if (S.dnd) { ministersDecide(L); refresh(); return; }
     if (!S.dead) {
       S.speed = 1;
       buzz([40, 40, 40]);
@@ -550,10 +580,10 @@
     return censureShares(rel, S.n493 + 1, false).pour;
   }
 
-  function voteLaw(id, instr) {
+  function voteLaw(id, instr, auto) {
     const L = LAW[id], st = S.laws[id];
-    if (!L || !st || st.status !== "pending" || S.dead || S.ending) return;
-    if (instr === "493") return use493(id);
+    if (!L || !st || st.status !== "pending" || (S.dead && !auto) || S.ending) return;
+    if (instr === "493") return use493(id, auto);
     if (instr === "retirer") { buryLaw(id, true); drain(2); refresh(); return; }
     const r = lawShares(L, instr, true);
     const adopted = r.pour > r.contre;
@@ -565,6 +595,11 @@
     Object.assign(d, apply(val(adopted ? L.yes : L.no)));
     if (adopted) S.stats.lois++;
     if (adopted && L.revoke) referendum();
+    if (auto) {
+      dndLog(auto, `${lawTitle(L)} : consigne « ${instr} », texte ${adopted ? "adopté" : "rejeté"} ${r.pour}–${r.contre}.`);
+      if (S.pendingEnd) { const e = S.pendingEnd; S.pendingEnd = null; endGameSoon(e); }
+      return;
+    }
     showVote({ kind: "vote", L, r, adopted, d });
     drain(VOTE_COST);
   }
@@ -579,7 +614,7 @@
     }
   }
 
-  function use493(id) {
+  function use493(id, auto) {
     const L = LAW[id], st = S.laws[id];
     if (!L.gov) return;
     S.n493++;
@@ -590,6 +625,7 @@
     S.stats.lois++;
     addNews(`49.3 sur « ${lawTitle(L)} » : adopté sans vote, l’opposition dépose une motion de censure`);
     S.sched.push({ w: S.week, at: S.t + 0.05, kind: "censure", id });
+    if (auto) { dndLog(auto, `a dégainé le 49.3 sur « ${lawTitle(L)} ». « Ça ira plus vite. »`); return; }
     showVote({ kind: "493", L, d });
     drain(COST_493);
   }
@@ -600,7 +636,11 @@
     S.lastCensure = r.pour;
     addNews(ok ? `MOTION DE CENSURE ADOPTÉE par ${r.pour} voix : le gouvernement est renversé`
                : `Motion de censure rejetée : ${r.pour} voix, il en fallait ${MAJ}`);
-    if (S.dead) { if (ok) endGameSoon("censure"); return; }
+    if (S.dead || S.dnd) {
+      if (S.dnd) dndLog({ name: "Assemblée", av: "🏛️", col: "#a8620a" }, ok ? `Motion de censure adoptée par ${r.pour} voix. Le gouvernement tombe pendant ta sieste.` : `Motion de censure rejetée : ${r.pour} voix sur ${MAJ}.`);
+      if (ok) endGameSoon("censure");
+      return;
+    }
     if (ok) S.pendingEnd = "censure";
     buzz([200, 100, 200]);
     showVote({ kind: "censure", L: LAW[id], r, adopted: ok });
@@ -771,6 +811,84 @@
       }).join("")}` : ""}`;
   }
 
+
+  // ------------------------------------------------------------------ mode Ne pas déranger
+  function startDnd() {
+    if (!S || !S.running || S.dead || S.dnd || S.ending) return;
+    if (S.call && S.call.phase === "ring") missCall(true);
+    S.dnd = { log: [], nextAct: S.t + rnd(0.03, 0.06), from: clockText() };
+    S.speed = FAST;
+    $("#banner").hidden = true;
+    renderDnd();
+    $("#dnd").hidden = false;
+    // les messages en attente : tes ministres s'en chargent aussi
+    Object.keys(S.convs).forEach(cid => {
+      const cv = S.convs[cid];
+      if (!cv.pending) return;
+      const e = EV[cv.pending];
+      ignore(cid, "🌙 Ne pas déranger : tes ministres ont géré");
+      dndLog(contact(cid), (e && e.d && e.d.r) || "Classé sans suite.");
+    });
+    Object.entries(S.laws).forEach(([id, st]) => { if (st.status === "pending") ministersDecide(LAW[id]); });
+  }
+
+  function stopDnd(silent) {
+    const n = S.dnd ? S.dnd.log.length : 0;
+    S.dnd = null;
+    S.speed = 1;
+    $("#dnd").hidden = true;
+    if (!silent) textToast(n ? `🌙 ${n} décision${n > 1 ? "s" : ""} prise${n > 1 ? "s" : ""} sans toi. Bon courage.` : "🌙 Rien ne s’est passé. Profite, c’est rare.");
+    refresh();
+  }
+
+  function dndLog(c, text) {
+    if (!S.dnd) return;
+    S.stats.dnd++;
+    S.dndWeek++;
+    S.dnd.log.unshift({ c, text, time: clockText() });
+    renderDnd();
+  }
+
+  // tes ministres votent selon leurs convictions, qui dépendent de qui est à l'Intérieur
+  function ministersDecide(L) {
+    const hawk = !S.flags.lebatonVire;
+    const who = { name: hawk ? "Lebâton" : "Mme Douce", av: hawk ? "🚓" : "🕊️", col: hawk ? "#2b4fa8" : "#4d7fa8" };
+    let instr;
+    if (L.revoke) instr = "contre";
+    else if (L.gov) {
+      const r = lawShares(L, "pour", false);
+      instr = r.pour > r.contre || !hawk ? "pour" : "493";
+    } else instr = (hawk ? ["RH", "DP"] : ["VP", "PP", "HI"]).includes(L.by) ? "pour" : "contre";
+    voteLaw(L.id, instr, who);
+  }
+
+  function ministerAct() {
+    let list = C.dndActs.filter(a => (!a.when || a.when(S)) && !S.dndUsed[a.id]);
+    if (!list.length) {
+      S.dndUsed = {};
+      list = C.dndActs.filter(a => !a.when || a.when(S));
+    }
+    const a = pick(list);
+    S.dndUsed[a.id] = true;
+    apply({ fx: a.fx });
+    if (a.post) addPost({ h: a.post[0], t: a.post[1], mine: true });
+    dndLog({ ...(a.from ? contact(a.from) : { av: "🌙", col: "#2d2a5a" }), name: a.who }, a.t);
+  }
+
+  function renderDnd() {
+    if (!S.dnd) return;
+    $("#dnd").innerHTML = `<div class="dnd-inner">
+      <div class="dnd-moon">🌙</div>
+      <p class="dnd-k">Ne pas déranger · depuis ${esc(S.dnd.from)}</p>
+      <p class="dnd-clock" id="dnd-clock">${clockText()}</p>
+      <p class="dnd-batt">🔋 Recharge en cours · <span id="dnd-batt">${Math.floor(S.battery)}%</span></p>
+      <h3>Pendant ton absence</h3>
+      <div class="dnd-log">${S.dnd.log.length ? S.dnd.log.map(l => `<div class="dnd-row"><span class="av" style="background:${l.c.col}">${l.c.av}</span><div><b>${esc(l.c.name)}</b><span>${esc(l.time)}</span><p>${esc(l.text)}</p></div></div>`).join("")
+        : `<p class="dnd-empty">Pour l’instant, rien. Tes ministres s’échauffent.</p>`}</div>
+      <button class="btn-primary" type="button" id="btn-dnd-stop">Reprendre la main</button>
+    </div>`;
+  }
+
   // ------------------------------------------------------------------ rendu : statut & accueil
   function updateStatus() {
     $("#clock").textContent = S ? clockText() : "08:00";
@@ -789,7 +907,7 @@
     { id: "photos", name: "Photos", ic: "🖼️", bg: "linear-gradient(160deg,#ffd36b,#f07f3c)", fake: "Album « Serrer des mains » : 4 312 photos. Aucune avec un ouvrier." },
     { id: "calc", name: "Calculette", ic: "🧮", bg: "linear-gradient(160deg,#4a4f60,#22252f)", fake: "Dette publique : 3 400 milliards. La calculette a planté." },
     { id: "rencontres", name: "Rencontres", ic: "💘", bg: "linear-gradient(160deg,#ff6fa5,#c2185b)", fake: "Compte suspendu par les services de renseignement. Pour votre sécurité." },
-    { id: "reglages", name: "Réglages", ic: "⚙️", bg: "linear-gradient(160deg,#9aa0b2,#5c6274)", fake: "Mode « Ne pas déranger » indisponible pour le chef de l’État." },
+    { id: "reglages", name: "Réglages", ic: "⚙️", bg: "linear-gradient(160deg,#9aa0b2,#5c6274)", fake: "Le mode « Ne pas déranger » est sur l’écran d’accueil. Tes ministres n’attendent que ça." },
     { id: "banque", name: "Banque", ic: "🏦", bg: "linear-gradient(160deg,#2f7a4a,#14361f)", fake: "Solde : 14 280 €. Compte « Clémentine » : accès refusé." },
   ];
   const DOCK = [
@@ -819,7 +937,8 @@
       <span class="wk">Semaine ${S.week} / 8</span>
       <span class="wt">${esc(C.weeks[S.week].title)}</span>
       <span class="wpop"><b>${Math.round(pop())}%</b><small>Popularité</small></span>
-      <span class="wmood">Climat social <span class="mood-pill" style="background:${col}22;color:${col}">${m}</span></span>`;
+      <span class="wmood">Climat social <span class="mood-pill" style="background:${col}22;color:${col}">${m}</span></span>
+      <button id="btn-dnd" class="btn-dnd" type="button"${S.dead ? " disabled" : ""}><span>🌙</span> Ne pas déranger<small>Tes ministres décident à ta place</small></button>`;
     $("#apps").innerHTML = APPS.map(appIcon).join("");
     $("#dock").innerHTML = DOCK.map(appIcon).join("");
   }
@@ -1041,6 +1160,7 @@
     if (S.deadAt) notes.push(`Ton téléphone est mort ${S.deadAt}.`);
     const pending = S.sched.filter(q => q.kind === "leak").length;
     if (pending) notes.push(`Quelque part, quelqu’un garde une capture d’écran.`);
+    if (S.dndWeek) notes.push(`🌙 Mode Ne pas déranger : tes ministres ont pris <b>${S.dndWeek}</b> décision${S.dndWeek > 1 ? "s" : ""} sans toi.`);
     if (S.week === 1) notes.push(`L’usure du pouvoir te coûte un peu de popularité chaque semaine. Rester immobile, c’est reculer.`);
     if (S.ecoWeek >= 0) notes.push(`Rien n’a été fait pour le climat cette semaine. La dette écologique monte quand même : le CO₂ ne lit pas l’ordre du jour.`);
     const waiting = Object.values(S.laws).filter(l => l.status === "pending").length;
@@ -1081,7 +1201,8 @@
     S.running = false;
     S.ending = id;
     if (S.call) { S.call = null; $("#call").hidden = true; }
-    ["#dead", "#banner", "#composer", "#recap", "#card", "#vote"].forEach(s => { $(s).hidden = true; });
+    ["#dead", "#banner", "#composer", "#recap", "#card", "#vote", "#dnd"].forEach(s => { $(s).hidden = true; });
+    S.dnd = null;
     voteOpen = false;
     const E = C.endings[id];
     const p = pop();
@@ -1108,6 +1229,12 @@
       <h2 class="end-t">${esc(E.title)}</h2>
       ${vote ? `<span class="end-vote">${vote}</span>` : ""}
       <p class="end-p">${esc(text)}</p>
+      <div class="card epi"><h3>Ce qu’ils sont devenus</h3>
+        ${C.epilogue.map(c => `<div class="epi-row"><span class="av" style="background:${c.col}">${c.av}</span><div><b>${esc(c.name)}</b><small>${esc(c.role)}</small><p>${esc(c.text(S))}</p></div></div>`).join("")}
+      </div>
+      <div class="card epi"><h3>Et les autres</h3>
+        ${C.epilogueOthers.map(c => `<p class="epi-other"><b>${esc(c.name)}</b> ${esc(c.text(S))}</p>`).join("")}
+      </div>
       <div class="card"><h3>Ton bilan</h3>
         <div class="stats">
           <div class="stat"><b>${Math.round(p)} %</b><span>popularité finale</span></div>
@@ -1118,6 +1245,7 @@
           <div class="stat"><b>${S.stats.feries}</b><span>jours fériés supprimés</span></div>
           <div class="stat"><b>${S.n493}</b><span>49.3 dégainés</span></div>
           <div class="stat"><b>${100 - S.eco} %</b><span>de planète restante</span></div>
+          <div class="stat"><b>${S.stats.dnd}</b><span>décisions prises sans toi</span></div>
         </div>
       </div>
       <div class="card"><h3>Fins découvertes · ${seen.length} / ${Object.keys(C.endings).length}</h3>
@@ -1223,6 +1351,8 @@
     if (t.dataset.post !== undefined) { if (t.dataset.post === "x") $("#composer").hidden = true; else publish(+t.dataset.post); return; }
     if (t.dataset.vote) return voteLaw(t.dataset.law, t.dataset.vote);
     if (t.id === "btn-vote-close") return closeVote();
+    if (t.id === "btn-dnd") return startDnd();
+    if (t.id === "btn-dnd-stop") return stopDnd();
     if (t.dataset.app) {
       const a = [...APPS, ...DOCK].find(x => x.id === t.dataset.app);
       if (a.fake) return textToast(a.fake);

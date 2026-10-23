@@ -4,6 +4,7 @@
 global.window = {};
 require(__dirname + '/../content.js');
 require(__dirname + '/../content-parlement.js');
+require(__dirname + '/../content-citoyens.js');
 const C = window.CONTENT;
 
 const G = ["jeunes", "ouvriers", "retraites", "patrons", "police"];
@@ -19,7 +20,7 @@ function game(strat) {
     ordre: 60, budget: 60, colere: 30, eco: 40, battery: 100, spent: 0, dead: false,
     rel: Object.fromEntries(C.groups.map(g => [g.id, g.rel])), laws: {}, n493: 0,
     flags: {}, stats: { blesses: 0, gav: 0, fuites: 0, ignores: 0, feries: 0, lois: 0 },
-    poolUsed: {}, ending: null, log: [], altUsed: {}, alerts: {},
+    poolUsed: {}, ending: null, log: [], altUsed: {}, alerts: {}, dnd: false, dndN: 0, dndUsed: {},
   };
   const val = x => (typeof x === "function" ? x(S) : x);
   const pop = () => G.reduce((s, k) => s + S.g[k] * W[k], 0);
@@ -44,7 +45,7 @@ function game(strat) {
     return null;
   }
   const end = id => { if (!S.ending) S.ending = id; };
-  const battery = () => 100 - 14 * S.t - S.spent;
+  const battery = () => (S.dnd ? 100 : 100 - 14 * S.t - S.spent);
   function spend(x) { S.spent += x; if (battery() <= 0) S.dead = true; }
 
   function lawShares(L, instr, noise) {
@@ -77,6 +78,20 @@ function game(strat) {
     return censure(rel, S.n493 + 1, false);
   }
   S.api = { lawShares, predictCensure, val };
+  function ministersDecide(L) {
+    S.dndN++;
+    const hawk = !S.flags.lebatonVire;
+    if (L.revoke) return "contre";
+    if (L.gov) { const r = lawShares(L, "pour", false); return r.pour > r.contre || !hawk ? "pour" : "493"; }
+    return (hawk ? ["RH", "DP"] : ["VP", "PP", "HI"]).includes(L.by) ? "pour" : "contre";
+  }
+  function ministerAct() {
+    let list = C.dndActs.filter(a => (!a.when || a.when(S)) && !S.dndUsed[a.id]);
+    if (!list.length) { S.dndUsed = {}; list = C.dndActs.filter(a => !a.when || a.when(S)); }
+    const a = list[Math.floor(Math.random() * list.length)];
+    S.dndUsed[a.id] = true; S.dndN++;
+    apply({ fx: a.fx });
+  }
 
   const queue = []; // {w, at, fn}
   const leakQ = [];
@@ -86,7 +101,8 @@ function game(strat) {
     if (e.when && !e.when(S)) return false;
     if (e.alt) S.altUsed[e.alt] = true;
     const opts = e.c.map((c, i) => [c, i]).filter(([c]) => !c.when || c.when(S));
-    let pick = S.dead ? null : strat.event(S, e, opts.map(o => o[0]));
+    let pick = S.dead || S.dnd ? null : strat.event(S, e, opts.map(o => o[0]));
+    if (S.dnd) S.dndN++;
     if (pick) {
       const ci = e.c.indexOf(pick);
       spend(e.call ? 8 + (pick.cost ?? 4) : (pick.cost ?? 8));
@@ -110,8 +126,8 @@ function game(strat) {
   function runLaw(L) {
     if (L.when && !L.when(S)) return;
     const st = S.laws[L.id] = { status: "pending", w: S.week };
-    if (S.dead) return;
-    const act = strat.law(S, L);
+    if (S.dead && !S.dnd) return;
+    const act = S.dnd ? ministersDecide(L) : strat.law(S, L);
     if (!act) return;
     if (act === "493") {
       spend(8);
@@ -148,6 +164,16 @@ function game(strat) {
         .forEach(p => { S.poolUsed[p.id] = true; items.push({ at: rnd(0.15, 0.88), fn: () => { if (!runEvent(p)) S.poolUsed[p.id] = false; } }); });
     }
     queue.filter(q => q.w === w).forEach(q => items.push(q));
+    C.citizenPosts.filter(p => p.w === w).forEach(p => items.push({ at: p.at, fn: () => { if (!p.when || p.when(S)) apply({ fx: p.fx, set: p.set }); } }));
+    S.dnd = false;
+    if (strat.dndFrom != null) {
+      items.push({ at: strat.dndFrom, fn: () => {
+        S.dnd = true;
+        // les textes en attente passent aux ministres
+        Object.entries(S.laws).forEach(([id, st]) => { if (st.status === "pending") { st.status = "x"; const L = C.laws.find(l => l.id === id); delete S.laws[id]; runLaw(L); } });
+      } });
+      for (let t = strat.dndFrom + rnd(0.03, 0.06); t < 1; t += rnd(0.07, 0.11)) items.push({ at: t, fn: () => { if (S.dnd) ministerAct(); } });
+    }
     // publication hebdo
     const post = strat.post && strat.post(S, C.posts[w]);
     if (post) items.push({ at: 0.5, fn: () => { if (!S.dead) { spend(6); apply({ fx: post.fx }); } } });
@@ -160,7 +186,7 @@ function game(strat) {
       // les fuites ajoutées en cours de semaine
       const late = queue.filter(q => q.w === w && q.at > it.at && !items.includes(q));
       if (late.length) { late.forEach(q => items.push(q)); items.sort((a, b) => a.at - b.at); }
-      for (const a of C.alerts) if (!S.alerts[a.id] && a.when(S)) { S.alerts[a.id] = true; runEvent(a); }
+      for (const a of C.alerts) if (!S.dnd && !S.alerts[a.id] && a.when(S)) { S.alerts[a.id] = true; runEvent(a); }
       const e = checkEnd(); if (e) end(e);
     }
     if (S.ending) break;
@@ -194,7 +220,7 @@ const fxOf = (o, S) => (o ? (typeof o === "function" ? o(S) : o) : {}) || {};
 function smartScore(S, o, ecoW = 1) {
   const f = o.fx || {};
   let x = G.reduce((s, k) => s + (f[k] || 0) * W[k], 0);
-  x += (f.patrons || 0) * (S.g.patrons < 30 ? .25 : .03) + (f.police || 0) * (S.g.police < 30 ? .2 : 0);
+  x += (f.patrons || 0) * (S.g.patrons < 35 ? .3 : .03) + (f.police || 0) * (S.g.police < 35 ? .25 : 0);
   x += (f.budget || 0) * (S.budget < 35 ? .4 : .12) - (f.colere || 0) * (S.colere > 60 ? .3 : .12);
   x += (f.ordre || 0) * (S.ordre < 40 ? .15 : 0) - (f.eco || 0) * ecoW * (S.eco > 60 ? .35 : .15);
   for (const [g, v] of Object.entries(o.rel || {})) x += v * (g === "RH" || g === "PP" ? 0.04 : 0.02);
@@ -260,6 +286,20 @@ const STRATS = {
     law: (S, L) => { const r = Math.random(); if (r < 0.15) return null; if (r < 0.4) return L.gov ? ["pour", "493"][Math.floor(Math.random() * 2)] : Math.random() < 0.5 ? "pour" : "contre"; return lawDecision(S, L, o => smartScore(S, o)); },
     post: (S, p) => (Math.random() < 0.6 ? p[Math.floor(Math.random() * 3)] : null),
   },
+  // joueur moyen qui passe la seconde moitié de chaque semaine en Ne pas déranger
+  dormeur: {
+    dndFrom: 0.5,
+    event: (S, e, o) => { const r = Math.random(); if (r < 0.15) return null; const a = noEnd(o); if (r < 0.4) return a[Math.floor(Math.random() * a.length)]; return pickBy(a, c => smartScore(S, c) - (c.leak ? c.leak.p * 6 : 0)); },
+    law: (S, L) => { const r = Math.random(); if (r < 0.15) return null; if (r < 0.4) return L.gov ? ["pour", "493"][Math.floor(Math.random() * 2)] : Math.random() < 0.5 ? "pour" : "contre"; return lawDecision(S, L, o => smartScore(S, o)); },
+    post: (S, p) => (Math.random() < 0.6 ? p[Math.floor(Math.random() * 3)] : null),
+  },
+  // stratège qui s'accorde une pause en fin de semaine
+  strategeFatigue: {
+    dndFrom: 0.8,
+    event: (S, e, o) => pickBy(noEnd(o), c => smartScore(S, c) - (c.leak ? c.leak.p * 6 : 0) - (c.cost ?? 8) * 0.02),
+    law: (S, L) => lawDecision(S, L, o => smartScore(S, o)),
+    post: (S, p) => pickBy(p, c => smartScore(S, c)),
+  },
   // social, mais écoute les alertes (patrons, caisses) comme le ferait un humain
   socialLucide: {
     event: (S, e, o) => pickBy(noEnd(o).length ? noEnd(o) : o, c => -(c.fx?.colere || 0) + (c.fx?.ouvriers || 0) * 0.3
@@ -300,15 +340,15 @@ if (trace) {
 console.log(`${N} parties par profil · dérive éco ${ECO_DRIFT}/sem · usure 49.3 ${USURE}\n`);
 for (const [name, st] of Object.entries(STRATS)) {
   const res = {}, wk = {};
-  let pop = 0, eco = 0, n493 = 0, fu = 0;
+  let pop = 0, eco = 0, n493 = 0, fu = 0, dn = 0;
   for (let i = 0; i < N; i++) {
     const S = game(st);
     res[S.ending] = (res[S.ending] || 0) + 1;
     wk[S.ending] = (wk[S.ending] || 0) + S.week;
-    pop += S.pop(); eco += S.eco; n493 += S.n493; fu += S.stats.fuites;
+    pop += S.pop(); eco += S.eco; n493 += S.n493; fu += S.stats.fuites; dn += S.dndN;
   }
   const line = Object.entries(res).sort((a, b) => b[1] - a[1])
     .map(([k, v]) => `${k} ${(100 * v / N).toFixed(0)}%${k === "reelu" || k === "battu" ? "" : ` (S${(wk[k] / v).toFixed(1)})`}`).join(" · ");
   console.log(`${name.padEnd(16)} ${line}`);
-  console.log(`${"".padEnd(16)} pop moy ${(pop / N).toFixed(0)} · éco ${(eco / N).toFixed(0)} · 49.3 ${(n493 / N).toFixed(1)} · fuites ${(fu / N).toFixed(1)}`);
+  console.log(`${"".padEnd(16)} pop moy ${(pop / N).toFixed(0)} · éco ${(eco / N).toFixed(0)} · 49.3 ${(n493 / N).toFixed(1)} · fuites ${(fu / N).toFixed(1)}${dn ? ` · décisions sans toi ${(dn / N).toFixed(0)}` : ""}`);
 }

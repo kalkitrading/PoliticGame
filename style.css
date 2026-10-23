@@ -372,3 +372,35 @@ button:focus-visible { outline: 2px solid var(--gold); outline-offset: 2px; }
 .vg { display: grid; grid-template-columns: 10px 1fr auto; gap: 8px; align-items: center; font-size: 13.5px; }
 .vg-n { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .vg-v { font-weight: 700; font-variant-numeric: tabular-nums; }
+
+/* ---------- Ne pas déranger */
+.btn-dnd { grid-column: 1 / -1; margin-top: 10px; display: grid; grid-template-columns: auto 1fr; grid-template-rows: auto auto; column-gap: 10px; align-items: center; text-align: left; background: #2a2560; border: 1px solid #4a43a0; border-radius: 16px; padding: 10px 14px; font-weight: 800; font-size: 15px; color: #e4e1ff; }
+.btn-dnd span { grid-row: 1 / span 2; font-size: 24px; }
+.btn-dnd small { grid-column: 2; font-weight: 500; font-size: 12px; color: #a9a3e6; }
+.btn-dnd:active { background: #3a3480; }
+.btn-dnd[disabled] { opacity: .4; }
+#dnd { background: radial-gradient(120% 70% at 50% 0%, #2a2560, #0b0a1c 70%); overflow-y: auto; }
+.dnd-inner { padding: calc(28px + env(safe-area-inset-top, 0px)) 18px calc(24px + env(safe-area-inset-bottom, 0px)); display: flex; flex-direction: column; gap: 6px; min-height: 100%; }
+.dnd-moon { font-size: 44px; text-align: center; animation: pulse 3s infinite; }
+.dnd-k { margin: 0; text-align: center; font-size: 12px; letter-spacing: .14em; text-transform: uppercase; color: #a9a3e6; font-weight: 700; }
+.dnd-clock { margin: 0; text-align: center; font: 400 64px/1 var(--f-head); font-variant-numeric: tabular-nums; color: #e4e1ff; }
+.dnd-batt { margin: 0 0 10px; text-align: center; font-size: 13px; color: var(--green); font-weight: 700; font-variant-numeric: tabular-nums; }
+.dnd-inner h3 { margin: 6px 0 4px; font-size: 12px; text-transform: uppercase; letter-spacing: .1em; color: #a9a3e6; }
+.dnd-log { display: flex; flex-direction: column; gap: 8px; flex: 1; }
+.dnd-row { display: grid; grid-template-columns: 36px 1fr; gap: 10px; background: rgba(255,255,255,.06); border-radius: 14px; padding: 10px 12px; animation: pop .3s both; }
+.dnd-row .av { width: 36px; height: 36px; font-size: 18px; }
+.dnd-row b { font-size: 14px; }
+.dnd-row span { color: #a9a3e6; font-size: 12px; margin-left: 6px; font-variant-numeric: tabular-nums; }
+.dnd-row p { margin: 2px 0 0; font-size: 14px; color: #dcdaf3; }
+.dnd-empty { color: #a9a3e6; text-align: center; font-size: 14px; }
+.dnd-inner .btn-primary { margin-top: 14px; }
+
+/* ---------- épilogue */
+.epi { gap: 14px; }
+.epi-row { display: grid; grid-template-columns: 40px 1fr; gap: 12px; }
+.epi-row .av { width: 40px; height: 40px; font-size: 20px; }
+.epi-row b { font-size: 15px; }
+.epi-row small { color: var(--dim); font-size: 12.5px; margin-left: 6px; }
+.epi-row p { margin: 3px 0 0; font-size: 14.5px; line-height: 1.45; color: #d9dce7; }
+.epi-other { margin: 0; font-size: 14px; line-height: 1.45; color: #c9ccd8; }
+.epi-other b { color: var(--fg); }

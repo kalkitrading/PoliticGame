@@ -17,12 +17,15 @@ Aucune installation, aucun build.
 - **Colère cachée** : la répression calme la rue tout de suite mais la colère s'accumule. Tant que l'ordre tient, elle reste sous le couvercle.
 - **Assemblée** : 577 sièges, 7 groupes (dont le Rassemblement Hexagonal, l'Hexagonie Indomptée, les Verts Pâles…). Chaque groupe dépose ses textes. Vote, 49.3 ou retrait : chaque 49.3 déclenche une motion de censure, et la patience de l'opposition s'use.
 - **Dette écologique** : elle monte chaque semaine. Si rien n'est voté pour le climat, c'est l'effondrement systémique.
+- **Mode Ne pas déranger** : le temps file et la batterie se recharge, mais tes ministres répondent, votent et prennent des initiatives à ta place.
+- **Citoyens** : Ginette, Lucas, Aminata, Patrice et Moussa t'écrivent pendant le mandat. Leur sort dépend de tes choix et s'affiche dans l'épilogue « Ce qu'ils sont devenus ».
 - **8 semaines** de crise jusqu'à l'élection, 13 fins à découvrir.
 
 ## Fichiers
 
 - `content.js` : personnages, événements, publications, fins. C'est là qu'on écrit le jeu.
 - `content-parlement.js` : groupes parlementaires, textes de loi, chefs de groupe, écologie.
+- `content-citoyens.js` : citoyens récurrents, épilogues, initiatives des ministres en mode Ne pas déranger.
 - `game.js` : moteur (temps, batterie, fuites, fins) et rendu des applis du téléphone.
 - `style.css`, `index.html` : interface.
 - `tools/equilibrage.js` : simulateur d'équilibrage. `node tools/equilibrage.js 3000` joue 3 000 parties par profil de joueur (hasard, répressif, social, stratège, joueur moyen…) et affiche la répartition des fins. `node tools/equilibrage.js 1 moyen` détaille une partie.
