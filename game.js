@@ -3,7 +3,7 @@
   "use strict";
 
   const C = window.CONTENT;
-  const WEEK_MS = 110000;          // durée réelle d'une semaine à vitesse normale
+  const WEEK_MS = 240000;          // durée réelle d'une semaine à vitesse normale (4 min)
   const FAST = 7;                   // multiplicateur en accéléré
   const CALL_RING_MS = 12000;       // temps pour décrocher
   const CALL_TALK_MS = 22000;       // temps pour répondre pendant l'appel
