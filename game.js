@@ -57,6 +57,7 @@
     if (me !== "CA" && !(prog.start.rel && "CA" in prog.start.rel)) rel.CA = 40;
     return {
       programme: prog.id, me, seats, overton: prog.overton, lastPoll: null,
+      image: Object.fromEntries(C.groups.map(x => [x.id, 0])),
       week: 1, t: 0, speed: 1, running: false, battery: 100, dead: false, deadAt: null, lowWarned: false,
       g,
       ordre: 60, budget: 68, colere: 30, eco: 40,
@@ -103,8 +104,9 @@
   function apply(o) {
     const d = {};
     if (!o) return d;
-    if (o.fx) {
-      for (const [k, v] of Object.entries(o.fx)) {
+    const fx = val(o.fx);
+    if (fx) {
+      for (const [k, v] of Object.entries(fx)) {
         if (GROUPS.includes(k)) {
           const b = S.g[k]; S.g[k] = clamp(S.g[k] + v, 0, 100); d[k] = S.g[k] - b;
         } else if (k === "overton") {
@@ -116,7 +118,9 @@
         }
       }
     }
-    if (o.rel) for (const [g, v] of Object.entries(o.rel)) S.rel[g] = clamp(S.rel[g] + v, 0, 100);
+    if (o.rel) for (const [g, v] of Object.entries(val(o.rel))) S.rel[g] = clamp(S.rel[g] + v, 0, 100);
+    // image d'un candidat à l'élection ; « me » désigne ton propre groupe
+    if (o.image) for (const [g, v] of Object.entries(val(o.image))) { const id = g === "me" ? S.me : g; S.image[id] = (S.image[id] || 0) + v; }
     if (o.set) Object.assign(S.flags, o.set);
     if (o.news) addNews(o.news);
     if (o.posts) o.posts.forEach((p, i) => schedulePost(p[0], p[1], 0.015 + i * 0.02));
@@ -398,7 +402,7 @@
     const ch = EV[q.id].c[q.ci];
     const L = ch.leak;
     S.stats.fuites++; S.leaksWeek++;
-    const deltas = apply({ fx: L.fx, news: L.news, rel: L.rel });
+    const deltas = apply({ fx: L.fx, news: L.news, rel: L.rel, image: L.image });
     addPost({ h: "@LaFuite_Hex", t: "Capture exclusive 👀 On vous laisse juger.", leak: true, shot: { to: contact(q.to).name, text: ch.t } });
     if (!S.dead) {
       buzz([80, 60, 80, 60, 240]);

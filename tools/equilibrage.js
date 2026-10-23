@@ -6,6 +6,7 @@ require(__dirname + '/../content.js');
 require(__dirname + '/../content-parlement.js');
 require(__dirname + '/../content-citoyens.js');
 require(__dirname + '/../content-programmes.js');
+require(__dirname + '/../content-coupsbas.js');
 const C = window.CONTENT;
 
 const G = ["jeunes", "ouvriers", "retraites", "patrons", "police"];
@@ -29,6 +30,7 @@ function game(strat, progId = "centre") {
   if (me !== "CA" && !("CA" in prog.start.rel)) rel0.CA = 40;
   const S = {
     programme: progId, me, seats, overton: prog.overton,
+    image: Object.fromEntries(C.groups.map(x => [x.id, 0])),
     week: 1, t: 0, g: g0,
     ordre: 60, budget: 68, colere: 30, eco: 40, battery: 100, spent: 0, dead: false,
     rel: rel0, laws: {}, n493: 0,
@@ -40,13 +42,14 @@ function game(strat, progId = "centre") {
   S.pop = pop;
   function apply(o) {
     if (!o) return;
-    for (const [k, v] of Object.entries(o.fx || {})) {
+    for (const [k, v] of Object.entries(val(o.fx) || {})) {
       if (G.includes(k)) S.g[k] = cl(S.g[k] + v, 0, 100);
       else if (k === "overton") S.overton = cl(S.overton + v, -100, 100);
       else if (["ordre", "budget", "colere", "eco"].includes(k)) S[k] = cl(S[k] + v, 0, 100);
       else if (k in S.stats) S.stats[k] = Math.max(0, S.stats[k] + v);
     }
-    for (const [g, v] of Object.entries(o.rel || {})) S.rel[g] = cl(S.rel[g] + v, 0, 100);
+    for (const [g, v] of Object.entries(val(o.rel) || {})) S.rel[g] = cl(S.rel[g] + v, 0, 100);
+    for (const [g, v] of Object.entries(val(o.image) || {})) { const id = g === "me" ? S.me : g; S.image[id] = (S.image[id] || 0) + v; }
     Object.assign(S.flags, o.set || {});
   }
   function checkEnd() {
@@ -128,8 +131,8 @@ function game(strat, progId = "centre") {
       shift(C.ovEvent(e.id, ci));
       if (pick.leak && Math.random() < pick.leak.p) {
         const L = pick.leak;
-        if (L.soon || S.week >= 8) queue.push({ w: S.week, at: S.t + rnd(0.05, 0.12), fn: () => { S.stats.fuites++; apply({ fx: L.fx, rel: L.rel }); } });
-        else queue.push({ w: S.week + 1, at: rnd(0.1, 0.6), fn: () => { S.stats.fuites++; apply({ fx: L.fx, rel: L.rel }); } });
+        if (L.soon || S.week >= 8) queue.push({ w: S.week, at: S.t + rnd(0.05, 0.12), fn: () => { S.stats.fuites++; apply({ fx: L.fx, rel: L.rel, image: L.image }); } });
+        else queue.push({ w: S.week + 1, at: rnd(0.1, 0.6), fn: () => { S.stats.fuites++; apply({ fx: L.fx, rel: L.rel, image: L.image }); } });
       }
       if (pick.end) end(pick.end);
       S.log.push(`S${S.week} ${e.id}: ${pick.t}`);
@@ -247,12 +250,14 @@ const fxOf = (o, S) => (o ? (typeof o === "function" ? o(S) : o) : {}) || {};
 
 // score « raisonnable » d'un ensemble d'effets, selon l'état du pays
 function smartScore(S, o, ecoW = 1) {
-  const f = o.fx || {};
+  const f = (typeof o.fx === "function" ? o.fx(S) : o.fx) || {};
   let x = G.reduce((s, k) => s + (f[k] || 0) * W[k], 0);
   x += (f.patrons || 0) * (S.g.patrons < 35 ? .3 : .03) + (f.police || 0) * (S.g.police < 35 ? .25 : 0);
   x += (f.budget || 0) * (S.budget < 35 ? .4 : .12) - (f.colere || 0) * (S.colere > 60 ? .3 : .12);
   x += (f.ordre || 0) * (S.ordre < 40 ? .15 : 0) - (f.eco || 0) * ecoW * (S.eco > 60 ? .35 : .15);
-  for (const [g, v] of Object.entries(o.rel || {})) x += v * (g === "RH" || g === "PP" ? 0.04 : 0.02);
+  for (const [g, v] of Object.entries((typeof o.rel === "function" ? o.rel(S) : o.rel) || {})) x += v * (g === "RH" || g === "PP" ? 0.04 : 0.02);
+  // coups bas : salir un adversaire rapporte, se salir soi-même coûte
+  for (const [g, v] of Object.entries((typeof o.image === "function" ? o.image(S) : o.image) || {})) x += (g === "me" || g === S.me ? 0.5 : -0.15) * v;
   return x;
 }
 
@@ -385,7 +390,8 @@ function agendaLaw(S, L, ag) {
   return lawDecision(S, L, o => smartScore(S, o));
 }
 const agendaEvent = (ag, dirW) => (S, e, o) => pickBy(noEnd(o), c => {
-  const ov = C.ovEvent(e.id, e.c.indexOf(c));
+  const fx = (typeof c.fx === "function" ? c.fx(S) : c.fx) || {};
+  const ov = C.ovEvent(e.id, e.c.indexOf(c)) + (fx.overton || 0);
   const pull = ag.dir === 0 ? -Math.abs(ov) * dirW : ov * ag.dir * dirW;
   return smartScore(S, c) + pull - (c.leak ? c.leak.p * 6 : 0);
 });

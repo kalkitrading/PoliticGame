@@ -177,6 +177,7 @@
       if (id === "RH") v += S.stats.fuites * 0.8 + Math.max(0, O) * 0.08;
       if (id === "HI") v += S.stats.fuites * 0.4;
       if (id === "VP") v += Math.max(0, S.eco - 60) * 0.25;
+      v += (S.image && S.image[id]) || 0;   // coups bas, scandales, trolls
       raw[id] = Math.max(1, v);
     }
     // tes électeurs déçus votent pour celui qui fait ce que tu as fait à leur place :
@@ -185,7 +186,7 @@
     for (const pr of C.promiseStates(S, atEnd)) if (pr.st === "broken" && pr.heir) { const h = typeof pr.heir === "function" ? pr.heir(S) : pr.heir; if (h !== me) heirs[h] = (heirs[h] || 0) + 1; }
     const nearest = ids.filter(id => id !== me).sort((a, b) => Math.abs(C.positions[a] - O) - Math.abs(C.positions[b] - O))[0];
     const heir = Object.keys(heirs).sort((a, b) => heirs[b] - heirs[a])[0] || nearest;
-    raw[heir] += (1 - f) * 14;
+    raw[heir] += (1 - f) * 18;
     for (const id of ids) raw[id] *= rnd();
     const sum = Object.values(raw).reduce((a, b) => a + b, 0);
     const r1 = ids.map(id => ({ id, pct: (100 * raw[id]) / sum })).sort((a, b) => b.pct - a.pct);

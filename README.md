@@ -22,6 +22,7 @@ Aucune installation, aucun build.
 - **Programmes** : avant de commencer, tu choisis ton programme (Justice sociale, Urgence climatique, Libérer les énergies, L'Ordre, Ni l'un ni l'autre). Il fixe le groupe que tu diriges à l'Assemblée, tes alliés de départ et 4 promesses à tenir.
 - **Fenêtre d'Overton** : chaque choix fait glisser ce qui est « dicible » dans le pays. Plus elle glisse à droite, plus le barrage contre le RH s'effondre.
 - **Élection à deux tours** : en semaine 8, six candidats. Tu gagnes si tu es populaire et fidèle à ton programme. Sinon, tes électeurs trahis votent pour celui qui a fait ce que tu as fait : le Centre si tu as trahi vers le centre, le RH si tu as glissé à droite ou écrasé la rue, l'Hexagonie Indomptée si la rue est restée forte et écoutée.
+- **Coups bas** : diaboliser un adversaire, exploiter une révélation de L'Écho, louer une ferme à trolls, ressortir des dossiers « arrangés »… ou subir une vidéo truquée, un hashtag assassin, un chantage. Chaque coup bas change l'image des candidats à l'élection, et un mensonge peut être démonté plus tard par un fact-check.
 - **8 semaines** de crise jusqu'à l'élection, 18 fins à découvrir.
 
 ## Fichiers
@@ -30,6 +31,7 @@ Aucune installation, aucun build.
 - `content-parlement.js` : groupes parlementaires, textes de loi, chefs de groupe, écologie.
 - `content-citoyens.js` : citoyens récurrents, épilogues, initiatives des ministres en mode Ne pas déranger.
 - `content-programmes.js` : programmes, promesses, fenêtre d'Overton, calcul de l'élection et fins selon le gagnant (partagé avec le simulateur).
+- `content-coupsbas.js` : coups bas lancés ou subis, et leur effet sur l'image des candidats.
 - `game.js` : moteur (temps, batterie, fuites, fins) et rendu des applis du téléphone.
 - `style.css`, `index.html` : interface.
 - `tools/equilibrage.js` : simulateur d'équilibrage. `node tools/equilibrage.js 1000` joue 1 000 parties pour chaque programme et chaque profil de joueur (fidèle, moyen, traître vers la droite, traître vers le centre, immobile) et affiche la répartition des fins. `node tools/equilibrage.js 1 fidele social` détaille une partie.
