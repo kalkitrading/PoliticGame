@@ -1,0 +1,125 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, user-scalable=no">
+<meta name="theme-color" content="#06070b">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<title>Ne Pas Déranger</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Anton&family=Figtree:wght@400;500;600;700;800&display=swap">
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+<!--BODY-->
+<div id="phone">
+  <header id="statusbar">
+    <span id="clock">Lun 08:00</span>
+    <span class="notch"></span>
+    <span class="sb-right">
+      <button id="ff" type="button" aria-label="Accélérer le temps"><svg viewBox="0 0 20 12" width="18" height="11" aria-hidden="true"><path d="M0 0l9 6-9 6zM10 0l9 6-9 6z" fill="currentColor"/></svg></button>
+      <span id="batt"><span id="batt-pct">100%</span><span class="batt-icon"><span id="batt-fill"></span></span></span>
+    </span>
+  </header>
+
+  <main id="screen">
+    <!-- Écran titre -->
+    <section id="v-title" class="view">
+      <div class="title-wrap">
+        <p class="eyebrow">République d’Hexagonie · Mandat n°1</p>
+        <h1 class="logo">NE PAS<br>DÉRANGER</h1>
+        <p class="pitch">Tu es le Président. Ton téléphone n’arrête pas de vibrer. Réprime, négocie, mens, ignore. Chaque message a un prix.</p>
+        <button id="btn-start" class="btn-primary" type="button">Prendre ses fonctions</button>
+        <p class="warn">⚠️ Humour noir. Pays fictif. Toute ressemblance avec des événements réels est évidemment voulue.</p>
+        <p id="endings-count" class="endings-count"></p>
+      </div>
+    </section>
+
+    <!-- Écran verrouillé -->
+    <section id="v-lock" class="view">
+      <div class="lock-top">
+        <p class="lock-date">Lundi · Semaine 1</p>
+        <p class="lock-time">08:00</p>
+      </div>
+      <div class="lock-notifs">
+        <div class="lnotif"><b>INFOCHOC 24</b><span>Hexagonie : vous êtes élu avec 50,3 % des voix (61 % d’abstention).</span></div>
+        <div class="lnotif"><b>Maman</b><span>Je suis fière de toi mon chéri ❤️ Mets un pull.</span></div>
+        <div class="lnotif"><b>Clémence</b><span>Bienvenue à l’Élysée. Déverrouille, on a du travail.</span></div>
+      </div>
+      <button id="btn-unlock" class="btn-unlock" type="button">Toucher pour gouverner</button>
+    </section>
+
+    <!-- Accueil -->
+    <section id="v-home" class="view">
+      <div class="widget" id="widget"></div>
+      <div class="apps" id="apps"></div>
+      <div class="dock" id="dock"></div>
+    </section>
+
+    <!-- Messages : liste -->
+    <section id="v-messages" class="view app">
+      <div class="app-head"><button class="back" data-go="home" type="button">‹ Accueil</button><h2>Messages</h2></div>
+      <div class="app-body" id="conv-list"></div>
+    </section>
+
+    <!-- Messages : conversation -->
+    <section id="v-thread" class="view app">
+      <div class="app-head thread-head"><button class="back" data-go="messages" type="button">‹</button><div id="thread-who"></div></div>
+      <div class="app-body thread-body" id="thread-body"></div>
+      <div class="replies" id="replies"></div>
+    </section>
+
+    <!-- Le Fil -->
+    <section id="v-fil" class="view app">
+      <div class="app-head"><button class="back" data-go="home" type="button">‹ Accueil</button><h2>Le Fil</h2><button id="btn-post" class="btn-post" type="button">Publier</button></div>
+      <div class="trends" id="trends"></div>
+      <div class="app-body" id="feed"></div>
+    </section>
+
+    <!-- Sondages -->
+    <section id="v-sondages" class="view app">
+      <div class="app-head"><button class="back" data-go="home" type="button">‹ Accueil</button><h2>Sondages</h2></div>
+      <div class="app-body" id="polls"></div>
+    </section>
+
+    <!-- Actu -->
+    <section id="v-actu" class="view app">
+      <div class="app-head actu-head"><button class="back" data-go="home" type="button">‹ Accueil</button><h2>InfoChoc 24</h2></div>
+      <div class="app-body" id="news"></div>
+    </section>
+
+    <!-- Agenda -->
+    <section id="v-agenda" class="view app">
+      <div class="app-head"><button class="back" data-go="home" type="button">‹ Accueil</button><h2>Agenda</h2></div>
+      <div class="app-body" id="agenda"></div>
+    </section>
+  </main>
+
+  <button id="homebar" type="button" aria-label="Retour à l’accueil"><span></span></button>
+
+  <!-- Bannière de notification -->
+  <div id="banner" hidden></div>
+  <!-- Effets d'un choix -->
+  <div id="fx-toast" hidden></div>
+
+  <!-- Appel entrant -->
+  <div id="call" class="overlay" hidden></div>
+  <!-- Composer un post -->
+  <div id="composer" class="sheet-wrap" hidden></div>
+  <!-- Téléphone mort -->
+  <div id="dead" class="overlay" hidden>
+    <div class="dead-inner"><div class="dead-batt"><span></span></div><p>Batterie épuisée.</p><p class="dim">Tes ministres gèrent. Ça va se voir.</p></div>
+  </div>
+  <!-- Carton de semaine -->
+  <div id="card" class="overlay" hidden></div>
+  <!-- Récap -->
+  <div id="recap" class="overlay" hidden></div>
+  <!-- Fin -->
+  <div id="ending" class="overlay" hidden></div>
+</div>
+<!--/BODY-->
+<script src="content.js"></script>
+<script src="game.js"></script>
+</body>
+</html>
