@@ -522,7 +522,6 @@
   function checkEnd() {
     // tant que l'ordre tient, la colère reste sous le couvercle
     if (S.colere >= 100 && S.ordre < 65) return "revolution";
-    if (S.eco >= 100) return "effondrement";
     if (S.g.police <= 8) return "coup";
     if (S.budget <= 0) return "faillite";
     if (S.g.patrons <= 5) return "debranche";
@@ -1346,6 +1345,8 @@
       you = C.youSentence(S, el);
     }
     text = text.replace("{n}", id === "revoque" ? S.revokePct : S.lastCensure);
+    const eco = C.ecoText(S, id);
+    if (eco && eco.level === "collapse") markEnding("effondrement");
     const seen = markEnding(id);
     const box = $("#ending");
     box.innerHTML = `<div class="rc">
@@ -1354,6 +1355,7 @@
       ${vote ? `<span class="end-vote">${esc(vote)}</span>` : ""}
       <p class="end-p">${esc(text)}</p>
       ${you ? `<p class="end-p end-you">${esc(you)}</p>` : ""}
+      ${eco ? `<div class="eco-end ${eco.level}">${eco.level === "collapse" ? `<b>🔥 Effondrement systémique</b>` : `<b>🌡️ Points de bascule</b>`}<p>${esc(eco.text)}</p></div>` : ""}
       ${promisesCard(true)}
       <div class="card epi"><h3>Ce qu’ils sont devenus</h3>
         ${C.epilogue.map(c => `<div class="epi-row"><span class="av" style="background:${c.col}">${c.av}</span><div><b>${esc(c.name)}</b><small>${esc(c.role)}</small><p>${esc(c.text(S))}</p></div></div>`).join("")}

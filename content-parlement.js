@@ -332,6 +332,7 @@
   Object.assign(C.endings, {
     censure: { title: "Censuré",
       text: "Motion de censure adoptée par {n} voix. Le RH et l’HI ont voté ensemble, puis se sont lavé les mains. Ton gouvernement tombe. Ton deuxième Premier ministre aussi. Le troisième refuse le poste par SMS. Tu restes Président d’un palais vide, et tu écris à des ministres qui n’existent plus." },
+    // débloquée en plus de la fin principale quand la planète atteint 100 % de dette écologique
     effondrement: { title: "Effondrement systémique",
       text: "Été 2027 : 52 °C à Lyon. Les récoltes ont brûlé, les assureurs ont fait faillite, les fleuves sont à sec. Ton dernier post : « Ensemble, adaptons-nous. » Publié depuis un bunker climatisé. Les historiens qui restent appellent ça « la décennie où personne n’a rien voté »." },
     revoque: { title: "Révoqué",

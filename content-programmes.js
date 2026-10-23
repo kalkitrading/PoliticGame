@@ -275,6 +275,31 @@
   });
   delete C.endings.battu;
 
+  // ---------------------------------------------------------------- LA PLANÈTE, EN ARRIÈRE-PLAN DE LA FIN
+  // L'effondrement ne termine plus la partie : il s'ajoute au texte de fin, quel que soit le gagnant.
+  C.ecoEnding = {
+    collapse: {
+      RH: "Steeve Frontière accuse les réfugiés climatiques d’avoir apporté la chaleur. Il fait construire un mur contre la mer. La mer n’a pas été consultée.",
+      HI: "Maxime Tonnerre lance un plan d’urgence historique, avec dix ans de retard. Le bonheur est voté, mais à 48 °C.",
+      CA: "Édouard Lisse organise une COP de la dernière chance, la quatorzième. Elle se tient sous clim, dans un salon de l’Élysée.",
+      VP: "Capucine Lombric est élue pour gérer les ruines. Elle a raison depuis vingt ans. Ça ne la console pas.",
+      DP: "Bertrand Héritage investit dans les bunkers de luxe. Sa grand-mère en a déjà douze.",
+      PP: "Olivier Hésitant hésite à déclarer l’état d’urgence climatique. Il hésite encore.",
+      me: "Tu as gagné l’élection sur une planète qui l’a perdue. Ton discours de victoire est coupé par une alerte canicule.",
+      other: "Pendant que le pays s’occupait de toi, les fleuves se sont asséchés, les récoltes ont brûlé et les assureurs ont fait faillite. Personne n’a eu le temps d’en parler.",
+    },
+    tipping: "Pendant ce temps, l’été a duré jusqu’en novembre et trois départements ont manqué d’eau potable. Personne n’en a parlé au débat.",
+  };
+  C.ecoText = (S, endingId) => {
+    if (S.eco >= 100) {
+      const w = S.election ? S.election.winner : null;
+      const t = endingId === "reelu" ? C.ecoEnding.collapse.me : w && C.ecoEnding.collapse[w] ? C.ecoEnding.collapse[w] : C.ecoEnding.collapse.other;
+      return { level: "collapse", text: t };
+    }
+    if (S.eco >= 75) return { level: "tipping", text: C.ecoEnding.tipping };
+    return null;
+  };
+
   // la phrase qui te concerne, selon ton programme, tes trahisons et le gagnant
   C.youSentence = (S, el) => {
     const states = C.promiseStates(S, true);

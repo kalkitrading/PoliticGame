@@ -16,7 +16,7 @@ Aucune installation, aucun build.
 - **Fuites** 🔓 : les réponses cyniques peuvent ressortir dans la presse quelques jours plus tard.
 - **Colère cachée** : la répression calme la rue tout de suite mais la colère s'accumule. Tant que l'ordre tient, elle reste sous le couvercle.
 - **Assemblée** : 577 sièges, 7 groupes (dont le Rassemblement Hexagonal, l'Hexagonie Indomptée, les Verts Pâles…). Chaque groupe dépose ses textes. Vote, 49.3 ou retrait : chaque 49.3 déclenche une motion de censure, et la patience de l'opposition s'use.
-- **Dette écologique** : elle monte chaque semaine. Si rien n'est voté pour le climat, c'est l'effondrement systémique.
+- **Dette écologique** : elle monte chaque semaine. Canicules, sécheresses et blocages agricoles suivent. Elle n'arrête pas la partie : si rien n'est voté pour le climat, l'effondrement systémique s'ajoute à la fin, quel que soit le gagnant de l'élection.
 - **Mode Ne pas déranger** : le temps file et la batterie se recharge, mais tes ministres répondent, votent et prennent des initiatives à ta place.
 - **Citoyens** : Ginette, Lucas, Aminata, Patrice et Moussa t'écrivent pendant le mandat. Leur sort dépend de tes choix et s'affiche dans l'épilogue « Ce qu'ils sont devenus ».
 - **Programmes** : avant de commencer, tu choisis ton programme (Justice sociale, Urgence climatique, Libérer les énergies, L'Ordre, Ni l'un ni l'autre). Il fixe le groupe que tu diriges à l'Assemblée, tes alliés de départ et 4 promesses à tenir.

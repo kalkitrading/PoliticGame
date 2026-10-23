@@ -452,3 +452,12 @@ button:focus-visible { outline: 2px solid var(--gold); outline-offset: 2px; }
 .el-list.r2 .el-row { animation-delay: 1.6s; }
 .el-stamp { animation-delay: 2.4s; }
 .el-note, .el-btn { animation: pop .4s 2.8s both; }
+
+/* planète, en arrière-plan de la fin */
+.eco-end { border-radius: var(--r); padding: 12px 14px; display: flex; flex-direction: column; gap: 4px; }
+.eco-end b { font: 400 20px/1.1 var(--f-head); letter-spacing: .02em; text-transform: uppercase; }
+.eco-end p { margin: 0; font-size: 15px; line-height: 1.45; }
+.eco-end.collapse { background: rgba(255,61,74,.14); border: 1px solid rgba(255,61,74,.45); }
+.eco-end.collapse b { color: var(--red); }
+.eco-end.tipping { background: rgba(255,176,32,.1); border: 1px solid rgba(255,176,32,.35); }
+.eco-end.tipping b { color: var(--amber); }

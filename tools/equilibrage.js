@@ -51,7 +51,6 @@ function game(strat, progId = "centre") {
   }
   function checkEnd() {
     if (S.colere >= 100 && S.ordre < 65) return "revolution";
-    if (S.eco >= 100) return "effondrement";
     if (S.g.police <= 8) return "coup";
     if (S.budget <= 0) return "faillite";
     if (S.g.patrons <= 5) return "debranche";
@@ -432,16 +431,17 @@ if (process.env.MATRICE !== "0") {
     console.log(`== ${C.programmes.find(p => p.id === prog).name}`);
     for (const [name, mk] of Object.entries(PROFILS)) {
       const res = {}, wk = {};
-      let ov = 0, fi = 0, n = 0;
+      let ov = 0, fi = 0, n = 0, eff = 0;
       for (let i = 0; i < N; i++) {
         const S = game(mk(prog), prog);
         res[S.ending] = (res[S.ending] || 0) + 1;
         wk[S.ending] = (wk[S.ending] || 0) + S.week;
         ov += S.overton;
+        if (S.eco >= 100) eff++;
         if (S.el) { fi += S.el.fidelity; n++; }
       }
       console.log(`  ${name.padEnd(14)} ${fmt(res, wk, N)}`);
-      console.log(`  ${"".padEnd(14)} Overton fin ${(ov / N).toFixed(0)} · promesses tenues ${n ? (100 * fi / n).toFixed(0) : "-"} %`);
+      console.log(`  ${"".padEnd(14)} Overton fin ${(ov / N).toFixed(0)} · promesses tenues ${n ? (100 * fi / n).toFixed(0) : "-"} % · planète effondrée ${(100 * eff / N).toFixed(0)} %`);
     }
   }
   process.exit();

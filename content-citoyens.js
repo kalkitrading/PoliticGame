@@ -181,7 +181,7 @@
   // ---------------------------------------------------------------- ÉPILOGUES : CE QU'ILS SONT DEVENUS
   C.epilogue = [
     { name: "Ginette", role: "84 ans, retraitée", av: "👵", col: "#8e5ca8", text: S => {
-      if (S.ending === "effondrement" || S.eco >= 85)
+      if (S.eco >= 85)
         return `Ginette est morte pendant la canicule de juillet, dans un appartement à 41 °C. Giscard a été adopté par la voisine. ${S.flags.ginette === "type" ? "Ta réponse type n°4 était encore au mur." : "Personne n’avait répondu à sa lettre."}`;
       if ((S.flags.gelPensions || S.flags.rigueur) && !["renov", "appel"].includes(S.flags.ginette2) && S.g.retraites < 45)
         return `Ginette est morte de froid en février, dans un salon à 12 °C. Le certificat de décès dit « causes naturelles ». ${S.flags.ginette === "type" ? "Ta réponse type n°4 était encadrée au-dessus du radiateur éteint." : "Elle avait gardé ta photo de campagne sur le frigo."}`;
