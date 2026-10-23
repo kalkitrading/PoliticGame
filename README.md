@@ -15,10 +15,13 @@ Aucune installation, aucun build.
 - **Silence** : un message ignoré déclenche la décision par défaut, souvent la pire.
 - **Fuites** 🔓 : les réponses cyniques peuvent ressortir dans la presse quelques jours plus tard.
 - **Colère cachée** : la répression calme la rue tout de suite mais la colère s'accumule. Tant que l'ordre tient, elle reste sous le couvercle.
-- **8 semaines** de crise jusqu'à l'élection, 10 fins à découvrir.
+- **Assemblée** : 577 sièges, 7 groupes (dont le Rassemblement Hexagonal, l'Hexagonie Indomptée, les Verts Pâles…). Chaque groupe dépose ses textes. Vote, 49.3 ou retrait : chaque 49.3 déclenche une motion de censure, et la patience de l'opposition s'use.
+- **Dette écologique** : elle monte chaque semaine. Si rien n'est voté pour le climat, c'est l'effondrement systémique.
+- **8 semaines** de crise jusqu'à l'élection, 13 fins à découvrir.
 
 ## Fichiers
 
 - `content.js` : personnages, événements, publications, fins. C'est là qu'on écrit le jeu.
+- `content-parlement.js` : groupes parlementaires, textes de loi, chefs de groupe, écologie.
 - `game.js` : moteur (temps, batterie, fuites, fins) et rendu des applis du téléphone.
 - `style.css`, `index.html` : interface.
