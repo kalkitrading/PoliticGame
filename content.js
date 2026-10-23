@@ -403,7 +403,7 @@ window.CONTENT = {
           "On rachète les terrains inondés pour 1 € symbolique et on y construit des résidences de luxe « Vue sur Fleuve »."],
       c: [
         { t: "Validé.", cost: 4, r: "Vous êtes un visionnaire. Je vous réserve un T5. Avec vue sur les anciens habitants.",
-          fx: { patrons: 8, budget: 4, eco: 4 },
+          fx: { patrons: 8, budget: 4, eco: 4 }, set: { terrainsVallon: true },
           leak: { p: 0.6, fx: { retraites: -10, ouvriers: -10, colere: 10 },
                   news: "SCANDALE : les terrains des sinistrés rachetés 1 € par un ami du Président" } },
         { t: "Non. Vous êtes un vautour.", cost: 3, r: "Un vautour, c’est un animal qui nettoie. Je nettoie.", fx: { patrons: -6 } },

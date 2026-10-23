@@ -240,7 +240,9 @@
     { name: "Le préfet Garrot", av: "🎖️", col: "#3a3f63", text: S => ["repression", "carteBlanche", "charge", "interdiction"].filter(f => S.flags[f]).length >= 2
       ? "a été promu. Il a reçu la Légion d’honneur des mains de ton successeur, pour « le maintien de l’ordre exemplaire de Jeudi Noir »."
       : "a été muté dans le Cantal. Il y a interdit les rassemblements de vaches." },
-    { name: "Steeve Frontière", av: "🧱", col: "#22356f", text: S => S.flags.pacteRH || passed(S, "l_preference") || passed(S, "l_immigration")
+    { name: "Steeve Frontière", av: "🧱", col: "#22356f", text: S => S.me === "RH"
+      ? "était le chef de ton groupe. Il trouve que tu as été « trop mou ». Il prépare sa candidature contre toi."
+      : S.flags.pacteRH || passed(S, "l_preference") || passed(S, "l_immigration")
       ? "te remercie dans chaque meeting d’avoir « ouvert la porte ». Il est en tête des sondages pour la prochaine présidentielle."
       : "est en tête des sondages pour la prochaine présidentielle. Il dit que c’est grâce à toi. Il n’a pas tort." },
     { name: "Ta mère", av: "👵", col: "#8e5ca8", text: S => S.ending === "reelu"

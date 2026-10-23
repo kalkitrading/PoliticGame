@@ -19,13 +19,17 @@ Aucune installation, aucun build.
 - **Dette écologique** : elle monte chaque semaine. Si rien n'est voté pour le climat, c'est l'effondrement systémique.
 - **Mode Ne pas déranger** : le temps file et la batterie se recharge, mais tes ministres répondent, votent et prennent des initiatives à ta place.
 - **Citoyens** : Ginette, Lucas, Aminata, Patrice et Moussa t'écrivent pendant le mandat. Leur sort dépend de tes choix et s'affiche dans l'épilogue « Ce qu'ils sont devenus ».
-- **8 semaines** de crise jusqu'à l'élection, 13 fins à découvrir.
+- **Programmes** : avant de commencer, tu choisis ton programme (Justice sociale, Urgence climatique, Libérer les énergies, L'Ordre, Ni l'un ni l'autre). Il fixe le groupe que tu diriges à l'Assemblée, tes alliés de départ et 4 promesses à tenir.
+- **Fenêtre d'Overton** : chaque choix fait glisser ce qui est « dicible » dans le pays. Plus elle glisse à droite, plus le barrage contre le RH s'effondre.
+- **Élection à deux tours** : en semaine 8, six candidats. Tu gagnes si tu es populaire et fidèle à ton programme. Sinon, tes électeurs trahis votent pour celui qui a fait ce que tu as fait : le Centre si tu as trahi vers le centre, le RH si tu as glissé à droite ou écrasé la rue, l'Hexagonie Indomptée si la rue est restée forte et écoutée.
+- **8 semaines** de crise jusqu'à l'élection, 18 fins à découvrir.
 
 ## Fichiers
 
 - `content.js` : personnages, événements, publications, fins. C'est là qu'on écrit le jeu.
 - `content-parlement.js` : groupes parlementaires, textes de loi, chefs de groupe, écologie.
 - `content-citoyens.js` : citoyens récurrents, épilogues, initiatives des ministres en mode Ne pas déranger.
+- `content-programmes.js` : programmes, promesses, fenêtre d'Overton, calcul de l'élection et fins selon le gagnant (partagé avec le simulateur).
 - `game.js` : moteur (temps, batterie, fuites, fins) et rendu des applis du téléphone.
 - `style.css`, `index.html` : interface.
-- `tools/equilibrage.js` : simulateur d'équilibrage. `node tools/equilibrage.js 3000` joue 3 000 parties par profil de joueur (hasard, répressif, social, stratège, joueur moyen…) et affiche la répartition des fins. `node tools/equilibrage.js 1 moyen` détaille une partie.
+- `tools/equilibrage.js` : simulateur d'équilibrage. `node tools/equilibrage.js 1000` joue 1 000 parties pour chaque programme et chaque profil de joueur (fidèle, moyen, traître vers la droite, traître vers le centre, immobile) et affiche la répartition des fins. `node tools/equilibrage.js 1 fidele social` détaille une partie.

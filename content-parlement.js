@@ -13,7 +13,7 @@
     { id: "HI",  name: "L’Hexagonie Indomptée", seats: 85,  col: "#d1342f", rel: 15, T: 60, leader: "Maxime Tonnerre" },
     { id: "VP",  name: "Les Verts Pâles",       seats: 38,  col: "#3aa864", rel: 35, T: 50, leader: "Capucine Lombric" },
     { id: "PP",  name: "Le Parti du Peut-Être", seats: 66,  col: "#e46a97", rel: 40, T: 35, leader: "Olivier Hésitant" },
-    { id: "CA",  name: "Le Centre Absolu (toi)", seats: 168, col: "#f0b429", rel: 90, T: -999, leader: "" },
+    { id: "CA",  name: "Le Centre Absolu",      seats: 168, col: "#f0b429", rel: 90, T: 35, leader: "Édouard Lisse" },
     { id: "DIV", name: "Divers & Égarés",       seats: 33,  col: "#8d93a5", rel: 50, T: 30, leader: "" },
     { id: "DP",  name: "La Droite Patrimoniale", seats: 47, col: "#4a86e0", rel: 50, T: 25, leader: "Bertrand Héritage" },
     { id: "RH",  name: "Rassemblement Hexagonal", seats: 140, col: "#22356f", rel: 30, T: 20, leader: "Steeve Frontière" },
@@ -32,10 +32,10 @@
   // ---------------------------------------------------------------- TEXTES DE LOI
   C.laws = [
     // ===== Semaine 1
-    { id: "l_budget", w: 1, at: 0.2, by: "CA", gov: true,
+    { id: "l_budget", w: 1, at: 0.2, by: S => S.me,
       title: "Budget 2027",
-      desc: "Projet du gouvernement. Le budget de l’État. Sans lui, pas d’argent. Avec lui, pas d’amis. Comme chaque année, il manque une soixantaine de voix.",
-      st: { HI: 0, VP: 0.1, PP: 0.25, CA: 0.95, DIV: 0.4, DP: 0.5, RH: 0.15 },
+      desc: "Le budget de l’État. Sans lui, pas d’argent. Avec lui, pas d’amis. Comme chaque année, il manque une soixantaine de voix.",
+      st: S => C.proximityStance(S, 0.95),
       yes: { fx: { budget: 12 }, news: "Budget 2027 adopté : « Un budget de responsabilité », selon les responsables" },
       no: { fx: { budget: -10, colere: 3 }, news: "Budget rejeté : l’Hexagonie vit à crédit, les marchés froncent les sourcils" },
       buried: { fx: { budget: -12 }, news: "Aucun budget voté : l’État tourne avec le budget de l’an dernier, et la photocopieuse de l’an dernier" } },
@@ -71,9 +71,9 @@
       no: { fx: { ouvriers: -4, colere: 3 }, news: "SMIC à 2 000 € rejeté : les députés, payés 7 600 € par mois, jugent la mesure « irréaliste »" } },
 
     // ===== Semaine 3
-    { id: "l_immigration", w: 3, at: 0.12, by: "CA", gov: true,
+    { id: "l_immigration", w: 3, at: 0.12, by: "CA",
       title: "Loi Immigration « Équilibrée »",
-      desc: "Projet du gouvernement. On reprend 80 % du programme du RH, avec un ton apaisé et une police de caractère plus douce. Clémence appelle ça « la fermeté humaniste ».",
+      desc: "On reprend 80 % du programme du RH, avec un ton apaisé et une police de caractère plus douce. Clémence appelle ça « la fermeté humaniste ».",
       st: { HI: 0, VP: 0, PP: 0.1, CA: 0.7, DIV: 0.45, DP: 0.8, RH: 0.65 },
       yes: { fx: { retraites: 5, police: 5, jeunes: -8, colere: 5 }, rel: { RH: 10, HI: -10, VP: -8, PP: -8 }, set: { loiImmig: true },
              news: "Loi Immigration adoptée grâce au RH. Steeve Frontière : « Une victoire idéologique. Merci qui ? »",
@@ -90,9 +90,9 @@
       no: { fx: { retraites: -2 }, news: "Plan Rénovation rejeté : les Hexagoniens continueront de chauffer les oiseaux" } },
 
     // ===== Semaine 4
-    { id: "l_climat_raisonnable", w: 4, at: 0.1, by: "CA", gov: true,
+    { id: "l_climat_raisonnable", w: 4, at: 0.1, by: "CA",
       title: "Loi Climat « Ambition Raisonnable »",
-      desc: "Projet du gouvernement. Neutralité carbone en 2097. Crédit d’impôt pour les SUV électriques de 3 tonnes. Une éolienne par département, dans le jardin du maire d’opposition.",
+      desc: "Neutralité carbone en 2097. Crédit d’impôt pour les SUV électriques de 3 tonnes. Une éolienne par département, dans le jardin du maire d’opposition.",
       st: { HI: 0.15, VP: 0.3, PP: 0.5, CA: 0.9, DIV: 0.5, DP: 0.55, RH: 0.3 },
       yes: { fx: { eco: -6, patrons: 3, jeunes: -2 },
              news: "Loi Climat adoptée. Les climatologues : « C’est un pansement sur un volcan »",
@@ -137,11 +137,11 @@
       no: { news: "Taxe kérosène rejetée : « Le ciel appartient à ceux qui peuvent se le payer »" } },
 
     // ===== Semaine 6
-    { id: "l_retraite", w: 6, at: 0.1, by: "CA", gov: true,
+    { id: "l_retraite", w: 6, at: 0.1, by: S => (S.me === "DP" ? "DP" : "CA"),
       title: S => S.flags.ret65 ? "Retraite à 65 ans" : "Retraite à 67 ans",
       desc: S => S.flags.ret65
-        ? "Projet du gouvernement, version « compromis » négociée avec le PP. Deux ans de moins que prévu, deux ans de plus qu’avant. Tout le monde est mécontent : c’est donc un bon compromis."
-        : "Projet du gouvernement. Travailler plus longtemps pour mourir plus près de son poste. Le Conseil d’orientation des retraites dit que ce n’est pas nécessaire. On ne lui a pas demandé.",
+        ? "Version « compromis » négociée avec le PP. Deux ans de moins que prévu, deux ans de plus qu’avant. Tout le monde est mécontent : c’est donc un bon compromis."
+        : "Travailler plus longtemps pour mourir plus près de son poste. Le Conseil d’orientation des retraites dit que ce n’est pas nécessaire. On ne lui a pas demandé.",
       st: S => ({ HI: 0, VP: 0, PP: S.flags.ret65 ? 0.6 : 0.05, CA: 0.8, DIV: 0.35, DP: 0.8, RH: 0.15 }),
       yes: S => S.flags.ret65
         ? { fx: { budget: 6, ouvriers: -6, retraites: -3, colere: 6 }, news: "Retraite à 65 ans adoptée : « Un compromis historique », selon le PP, qui hésite encore" }
@@ -178,18 +178,18 @@
       against: S => S.flags.promesseVP ? { rel: { VP: -20 }, news: "Capucine Lombric : « Le Président m’a menti. Le climat, lui, ne ment pas »" } : null },
 
     // ===== Semaine 8
-    { id: "l_revocation", w: 8, at: 0.1, by: "HI", revoke: true,
+    { id: "l_revocation", w: 8, at: 0.1, by: "HI", revoke: true, when: S => S.me !== "HI",
       title: "Référendum révocatoire du Président",
       desc: "Si la majorité des électeurs le demande, le Président est révoqué. Le RH, qui déteste l’HI, trouve l’idée « intéressante ». Tout le monde la trouve intéressante, sauf toi.",
       st: { HI: 1, VP: 0.8, PP: 0.5, CA: 0, DIV: 0.4, DP: 0.1, RH: 0.8 },
       yes: { news: "Référendum révocatoire adopté : le vote a lieu dans 48 heures" },
       no: { news: "Référendum révocatoire rejeté : le Président garde son poste, et une sueur froide" } },
 
-    { id: "l_feries", w: 8, at: 0.45, by: "CA", gov: true,
+    { id: "l_feries", w: 8, at: 0.45, by: "CA",
       title: "Loi « Jours Fériés Rendus »",
       desc: S => S.stats.feries > 0
-        ? "Projet du gouvernement. On rend les deux jours fériés supprimés. À une semaine de l’élection. Pure coïncidence."
-        : "Projet du gouvernement. Un jour férié de plus : le « Jour du Président ». À une semaine de l’élection. Pure coïncidence.",
+        ? "On rend les deux jours fériés supprimés. À une semaine de l’élection. Pure coïncidence."
+        : "Un jour férié de plus : le « Jour du Président ». À une semaine de l’élection. Pure coïncidence.",
       st: { HI: 0.5, VP: 0.6, PP: 0.8, CA: 0.95, DIV: 0.6, DP: 0.3, RH: 0.6 },
       yes: { fx: { ouvriers: 8, jeunes: 3, budget: -4, patrons: -5, feries: -2 },
              news: "Jours fériés rendus à 6 jours de l’élection : « Aucun rapport », jure l’Élysée" },
@@ -198,7 +198,7 @@
 
   // ---------------------------------------------------------------- SMS DES CHEFS DE GROUPE
   C.events.push(
-    { id: "w1_tonnerre", w: 1, at: 0.84, from: "tonnerre",
+    { id: "w1_tonnerre", w: 1, at: 0.84, from: "tonnerre", when: S => S.me !== "HI",
       m: ["Président, Maxime Tonnerre, Hexagonie Indomptée.",
           "Je vous préviens : au premier 49.3, je dépose une motion de censure. Au deuxième aussi. Au troisième, je dors à l’Assemblée."],
       c: [
@@ -207,7 +207,7 @@
       ],
       d: { r: "Pas de réponse. Je prends ça pour du mépris. J’ai une grande expérience du mépris." } },
 
-    { id: "w2_frontiere", w: 2, at: 0.08, from: "frontiere",
+    { id: "w2_frontiere", w: 2, at: 0.08, from: "frontiere", when: S => S.me !== "RH",
       m: ["Président. Steeve Frontière.",
           "On peut s’entendre. Tu soutiens ma Préférence Hexagonale, et le RH ne votera jamais la censure. Parole de patriote."],
       c: [
@@ -219,7 +219,7 @@
       ],
       d: { r: "Le silence, c’est déjà un peu un oui. On en reparlera." } },
 
-    { id: "w3_heritage", w: 3, at: 0.3, from: "heritage",
+    { id: "w3_heritage", w: 3, at: 0.3, from: "heritage", when: S => S.me !== "DP",
       m: ["Président, Bertrand Héritage.",
           "Mes 47 députés sont à vous… si vous votez ma loi Héritage la semaine prochaine. Ma grand-mère vous embrasse. Elle a 12 immeubles."],
       c: [
@@ -229,7 +229,7 @@
       ],
       d: { r: "Pas de réponse. Je note. Je note tout, c’est héréditaire." } },
 
-    { id: "w4_lombric", w: 4, at: 0.52, from: "lombric",
+    { id: "w4_lombric", w: 4, at: 0.52, from: "lombric", when: S => S.me !== "VP",
       m: ["Président, Capucine Lombric. L’eau monte. Littéralement.",
           "Soit vous soutenez une vraie loi climat, soit les noyés de cette semaine seront sur votre conscience. Et sur mon compte Le Fil."],
       c: [
@@ -238,7 +238,7 @@
       ],
       d: { r: "Pas de réponse. Comme la planète, en fait. Elle non plus ne répond plus." } },
 
-    { id: "w6_hesitant", w: 6, at: 0.04, from: "hesitant",
+    { id: "w6_hesitant", w: 6, at: 0.04, from: "hesitant", when: S => S.me === "CA" || S.me === "DP",
       m: ["Président, Olivier Hésitant, Parti du Peut-Être.",
           "On pourrait ne pas voter la censure sur les retraites… si c’était 65 ans au lieu de 67. Ou 66. On hésite. Mais plutôt 65. Je crois."],
       c: [
@@ -265,7 +265,7 @@
       m: ["Sécheresse totale. Plus une goutte dans les rivières.", "On bloque les autoroutes avec nos tracteurs tant qu’on n’a pas nos méga-bassines."],
       c: [
         { t: "Méga-bassines pour tous.", cost: 4, r: "Merci Président. On pompera la nappe jusqu’à la dernière goutte, promis.",
-          fx: { eco: 5, patrons: 3, jeunes: -5 }, news: "Méga-bassines : le gouvernement cède, les nappes phréatiques aussi" },
+          fx: { eco: 5, patrons: 3, jeunes: -5 }, set: { megabassines: true }, news: "Méga-bassines : le gouvernement cède, les nappes phréatiques aussi" },
         { t: "Partage de l’eau et aides à la transition.", cost: 6, r: "Partager ? On n’a pas l’habitude. Mais on prend les aides.",
           fx: { budget: -6, eco: -4, ouvriers: 2 } },
         { t: "Envoyez les CRS contre les tracteurs.", cost: 4, r: "Les tracteurs pèsent 12 tonnes. Les CRS, 80 kilos. Je vous laisse faire le calcul.",
@@ -335,6 +335,6 @@
     effondrement: { title: "Effondrement systémique",
       text: "Été 2027 : 52 °C à Lyon. Les récoltes ont brûlé, les assureurs ont fait faillite, les fleuves sont à sec. Ton dernier post : « Ensemble, adaptons-nous. » Publié depuis un bunker climatisé. Les historiens qui restent appellent ça « la décennie où personne n’a rien voté »." },
     revoque: { title: "Révoqué",
-      text: "Tu as laissé passer le référendum révocatoire. {n} % des Hexagoniens ont voté pour ton départ. Les autres n’ont pas trouvé leur bureau de vote. Tu quittes l’Élysée à pied : la voiture de fonction, elle, n’a pas été révoquée." },
+      text: "L’Assemblée a voté le référendum révocatoire, tes propres frondeurs compris. {n} % des Hexagoniens ont voté pour ton départ. Les autres n’ont pas trouvé leur bureau de vote. Tu quittes l’Élysée à pied : la voiture de fonction, elle, n’a pas été révoquée." },
   });
 })();

@@ -11,7 +11,7 @@
   const POST_COST = 6;
   const GROUPS = ["jeunes", "ouvriers", "retraites", "patrons", "police"];
   const LABEL = { jeunes: "Jeunes", ouvriers: "Ouvriers", retraites: "Retraités", patrons: "Patrons", police: "Police", ordre: "Ordre", budget: "Caisses", eco: "Planète" };
-  const WEIGHTS = { jeunes: .22, ouvriers: .28, retraites: .30, patrons: .08, police: .12 };
+  const WEIGHTS = C.weights;
   const DAYS = ["Lun", "Mar", "Mer", "Jeu", "Ven", "Sam", "Dim"];
   const DAYS_FULL = ["Lundi", "Mardi", "Mercredi", "Jeudi", "Vendredi", "Samedi", "Dimanche"];
   const REPRESSION_FLAGS = ["repression", "carteBlanche", "charge", "requisition", "interdiction", "perquisition", "armee", "securiteAbsolue"];
@@ -43,12 +43,24 @@
   let voteOpen = false;
 
   // ------------------------------------------------------------------ état
-  function newState() {
+  function newState(progId) {
+    const prog = C.programmes.find(p => p.id === progId) || C.programmes[C.programmes.length - 1];
+    const me = prog.group;
+    // ton groupe prend les 168 sièges du groupe présidentiel ; le Centre Absolu récupère les siens
+    const seats = Object.fromEntries(C.groups.map(g => [g.id, g.seats]));
+    if (me !== "CA") { seats.CA = seats[me]; seats[me] = 168; }
+    const g = { jeunes: 38, ouvriers: 32, retraites: 55, patrons: 62, police: 58 };
+    for (const [k, v] of Object.entries(prog.start.g)) g[k] = clamp(g[k] + v, 0, 100);
+    const rel = Object.fromEntries(C.groups.map(x => [x.id, x.rel]));
+    Object.assign(rel, prog.start.rel);
+    rel[me] = 90;
+    if (me !== "CA" && !(prog.start.rel && "CA" in prog.start.rel)) rel.CA = 40;
     return {
+      programme: prog.id, me, seats, overton: prog.overton, lastPoll: null,
       week: 1, t: 0, speed: 1, running: false, battery: 100, dead: false, deadAt: null, lowWarned: false,
-      g: { jeunes: 38, ouvriers: 32, retraites: 55, patrons: 62, police: 58 },
-      ordre: 60, budget: 60, colere: 30, eco: 40,
-      rel: Object.fromEntries(C.groups.map(g => [g.id, g.rel])),
+      g,
+      ordre: 60, budget: 68, colere: 30, eco: 40,
+      rel,
       laws: {}, n493: 0, lastCensure: 0, revokePct: 0, pendingEnd: null, altUsed: {}, alerts: {},
       dnd: null, dndWeek: 0, dndUsed: {}, cposts: {},
       flags: {},
@@ -95,6 +107,8 @@
       for (const [k, v] of Object.entries(o.fx)) {
         if (GROUPS.includes(k)) {
           const b = S.g[k]; S.g[k] = clamp(S.g[k] + v, 0, 100); d[k] = S.g[k] - b;
+        } else if (k === "overton") {
+          S.overton = clamp(S.overton + v, -100, 100);
         } else if (k === "ordre" || k === "budget" || k === "colere" || k === "eco") {
           const b = S[k]; S[k] = clamp(S[k] + v, 0, 100); d[k] = S[k] - b;
         } else if (k in S.stats) {
@@ -108,6 +122,8 @@
     if (o.posts) o.posts.forEach((p, i) => schedulePost(p[0], p[1], 0.015 + i * 0.02));
     return d;
   }
+
+  const shift = v => { if (v) S.overton = clamp(S.overton + v, -100, 100); };
 
   function drain(x) {
     if (S.dead) return;
@@ -251,6 +267,7 @@
     cv.lastText = "Appel manqué"; cv.last = S.seq++; cv.unread++;
     S.stats.ignores++; S.ignoredWeek++;
     apply(d);
+    shift(C.ovEvent(e.id, "d"));
   }
 
   function ignore(cid, label) {
@@ -263,6 +280,7 @@
     const d = e.d || {};
     if (d.r) { cv.msgs.push({ k: "them", text: d.r }); cv.lastText = d.r; }
     apply(d);
+    shift(C.ovEvent(e.id, "d"));
     if (d.end) endGameSoon(d.end);
   }
 
@@ -276,6 +294,7 @@
     cv.lastText = `Vous : ${ch.t}`;
     cv.last = S.seq++;
     const deltas = apply(ch);
+    shift(C.ovEvent(e.id, ci));
     if (ch.leak && Math.random() < ch.leak.p) scheduleLeak(e, ci, cid);
     showFx(deltas);
     if (ch.r) {
@@ -325,6 +344,7 @@
     cv.unread++;
     S.stats.ignores++; S.ignoredWeek++;
     showFx(apply(d));
+    shift(C.ovEvent(e.id, "d"));
     if (!silent) textToast("📞 Appel manqué");
     refresh();
   }
@@ -360,6 +380,7 @@
     }, 700);
 
     const deltas = apply(ch);
+    shift(C.ovEvent(e.id, ci));
     if (ch.leak && Math.random() < ch.leak.p) scheduleLeak(e, ci, cid);
     showFx(deltas);
     if (ch.end) endGameSoon(ch.end);
@@ -479,12 +500,14 @@
     // la colère retombe si on ne l'alimente pas, sauf chez ceux qui n'en peuvent plus
     const avg = (S.g.jeunes + S.g.ouvriers) / 2;
     S.colere = clamp(S.colere + clamp(Math.round((40 - avg) * 0.15), -3, 5) - 3, 0, 100);
+    shift(C.overtonMap.weekly);
     // une colère maximale use les forces de l'ordre
     if (S.colere >= 90) S.ordre -= 6;
     S.ordre = clamp(Math.round(S.ordre + (50 - S.ordre) * 0.1), 0, 100);
     S.budget = clamp(S.budget - 1, 0, 100);
     // les marchés ont la mémoire courte
     S.g.patrons = clamp(Math.round(S.g.patrons + (45 - S.g.patrons) * 0.15), 0, 100);
+    S.g.police = clamp(Math.round(S.g.police + (45 - S.g.police) * 0.12), 0, 100);
     // l'usure du pouvoir : les citoyens se lassent un peu chaque semaine
     ["jeunes", "ouvriers", "retraites"].forEach(k => { S.g[k] = clamp(S.g[k] - 2, 0, 100); });
     S.popHist.push(Math.round(pop()));
@@ -492,7 +515,7 @@
     $("#banner").hidden = true;
     const end = checkEnd();
     if (end) return showEnding(end);
-    if (S.week >= 8) return showEnding(pop() >= 45 ? "reelu" : "battu");
+    if (S.week >= 8) return showElection();
     showRecap();
   }
 
@@ -517,6 +540,9 @@
 
   // ------------------------------------------------------------------ assemblée
   const lawTitle = L => val(L.title);
+  const byOf = L => val(L.by);
+  const isGov = L => byOf(L) === S.me;
+  const seatsOf = g => S.seats[g.id];
   const addFx = (a, b) => {
     const o = { ...(a || {}) };
     for (const [k, v] of Object.entries(b)) o[k] = (o[k] || 0) + v;
@@ -526,12 +552,12 @@
   function deliverLaw(L) {
     if (L.when && !L.when(S)) { S.laws[L.id] = { status: "skip", w: S.week }; return; }
     S.laws[L.id] = { status: "pending", w: S.week, seq: S.seq++ };
-    const g = GBY[L.by];
+    const g = GBY[byOf(L)];
     if (S.dnd) { ministersDecide(L); refresh(); return; }
     if (!S.dead) {
       S.speed = 1;
       buzz([40, 40, 40]);
-      if (view !== "assemblee") banner({ av: "📜", col: g.col, name: L.gov ? "Projet de loi du gouvernement" : `Proposition de loi · ${g.id}` }, lawTitle(L), () => go("assemblee"));
+      if (view !== "assemblee") banner({ av: "📜", col: g.col, name: isGov(L) ? "Projet de loi du gouvernement" : `Proposition de loi · ${g.id}` }, lawTitle(L), () => go("assemblee"));
     }
     refresh();
   }
@@ -540,20 +566,22 @@
   function lawShares(L, instr, noise) {
     const st = val(L.st);
     // quand le Président est impopulaire, ses propres députés le lâchent
-    const fronde = clamp((45 - pop()) / 80, 0, 0.3);
+    const broken = C.promiseStates(S).filter(p => p.st === "broken").length;
+    const fronde = clamp((45 - pop()) / 80, 0, 0.3) + broken * 0.04 + (S.flags.frondeDure ? 0.1 : 0);
     const groups = {};
     let pour = 0, contre = 0, abst = 0;
     for (const g of C.groups) {
-      let p = g.id === "CA"
-        ? (instr === "pour" ? 0.78 + 0.22 * st.CA - fronde : 0.1 * st.CA + fronde)
-        : st[g.id] + (S.rel[g.id] - 50) / (L.gov ? 250 : 450);
+      let p = g.id === S.me
+        ? (instr === "pour" ? 0.78 + 0.22 * st[g.id] - fronde : 0.1 * st[g.id] + fronde)
+        : st[g.id] + (S.rel[g.id] - 50) / (isGov(L) ? 250 : 450);
       if (noise) p += rnd(-0.08, 0.08);
       p = clamp(p, 0, 1);
       const a = noise ? rnd(0.02, 0.1) : 0.06;
-      const y = Math.round(g.seats * p * (1 - a));
-      const ab = Math.min(g.seats - y, Math.round(g.seats * a));
-      groups[g.id] = { pour: y, contre: g.seats - y - ab, abst: ab };
-      pour += y; contre += g.seats - y - ab; abst += ab;
+      const n = seatsOf(g);
+      const y = Math.round(n * p * (1 - a));
+      const ab = Math.min(n - y, Math.round(n * a));
+      groups[g.id] = { pour: y, contre: n - y - ab, abst: ab };
+      pour += y; contre += n - y - ab; abst += ab;
     }
     return { groups, pour, contre, abst };
   }
@@ -564,11 +592,11 @@
     const groups = {};
     let pour = 0;
     for (const g of C.groups) {
-      let share = g.id === "CA" ? 0 : 0.5 + (g.T + usure - rel[g.id]) / 30;
-      if (noise && g.id !== "CA") share += rnd(-0.1, 0.1);
+      let share = g.id === S.me ? 0 : 0.5 + (g.T + usure - rel[g.id]) / 30;
+      if (noise && g.id !== S.me) share += rnd(-0.1, 0.1);
       share = clamp(share, 0, 1);
-      const y = Math.round(g.seats * share);
-      groups[g.id] = { pour: y, contre: g.seats - y, abst: 0 };
+      const y = Math.round(seatsOf(g) * share);
+      groups[g.id] = { pour: y, contre: seatsOf(g) - y, abst: 0 };
       pour += y;
     }
     return { groups, pour, contre: 577 - pour, abst: 0 };
@@ -576,7 +604,7 @@
 
   function predictCensure() {
     const rel = { ...S.rel };
-    C.groups.forEach(g => { if (g.id !== "CA") rel[g.id] = clamp(rel[g.id] - 5, 0, 100); });
+    C.groups.forEach(g => { if (g.id !== S.me) rel[g.id] = clamp(rel[g.id] - 5, 0, 100); });
     return censureShares(rel, S.n493 + 1, false).pour;
   }
 
@@ -589,11 +617,12 @@
     const adopted = r.pour > r.contre;
     st.status = adopted ? "adopted" : "rejected";
     st.res = r;
+    st.instr = instr;
     const d = {};
     if (instr === "contre" && L.against) Object.assign(d, apply(val(L.against)));
-    if (L.by !== "CA") S.rel[L.by] = clamp(S.rel[L.by] + (instr === "pour" ? 5 : -4), 0, 100);
+    if (byOf(L) !== S.me) S.rel[byOf(L)] = clamp(S.rel[byOf(L)] + (instr === "pour" ? 5 : -4), 0, 100);
     Object.assign(d, apply(val(adopted ? L.yes : L.no)));
-    if (adopted) S.stats.lois++;
+    if (adopted) { S.stats.lois++; shift(C.overtonMap.laws[L.id]); }
     if (adopted && L.revoke) referendum();
     if (auto) {
       dndLog(auto, `${lawTitle(L)} : consigne « ${instr} », texte ${adopted ? "adopté" : "rejeté"} ${r.pour}–${r.contre}.`);
@@ -616,10 +645,11 @@
 
   function use493(id, auto) {
     const L = LAW[id], st = S.laws[id];
-    if (!L.gov) return;
+    if (!isGov(L)) return;
     S.n493++;
     st.status = "493";
-    C.groups.forEach(g => { if (g.id !== "CA") S.rel[g.id] = clamp(S.rel[g.id] - 5, 0, 100); });
+    shift((C.overtonMap.laws[L.id] || 0) + C.overtonMap.use493);
+    C.groups.forEach(g => { if (g.id !== S.me) S.rel[g.id] = clamp(S.rel[g.id] - 5, 0, 100); });
     const y = val(L.yes) || {};
     const d = apply({ ...y, fx: addFx(y.fx, { colere: 4, jeunes: -2 }) });
     S.stats.lois++;
@@ -649,7 +679,7 @@
   function buryLaw(id, retire) {
     const L = LAW[id];
     S.laws[id].status = retire ? "retire" : "buried";
-    if (L.by !== "CA") S.rel[L.by] = clamp(S.rel[L.by] - 3, 0, 100);
+    if (byOf(L) !== S.me) S.rel[byOf(L)] = clamp(S.rel[byOf(L)] - 3, 0, 100);
     apply(val(L.buried) || (retire ? { news: `Le gouvernement retire « ${lawTitle(L)} » de l’ordre du jour` } : null));
   }
 
@@ -677,7 +707,7 @@
   function hemicycle(r, censure) {
     const fills = [];
     for (const g of C.groups) {
-      if (!r) { for (let i = 0; i < g.seats; i++) fills.push(g.col); continue; }
+      if (!r) { for (let i = 0; i < seatsOf(g); i++) fills.push(g.col); continue; }
       const v = r.groups[g.id];
       for (let i = 0; i < v.pour; i++) fills.push(censure ? "#ff3d4a" : "#34d68a");
       for (let i = 0; i < v.abst; i++) fills.push("#5a6075");
@@ -693,8 +723,8 @@
   function groupTable(r, censure) {
     return `<div class="vt-groups">${C.groups.map(g => {
       const v = r.groups[g.id];
-      return `<div class="vg"><span class="dot" style="background:${g.col}"></span><span class="vg-n">${esc(g.name)}</span>
-        <span class="vg-v">${censure ? `${v.pour} / ${g.seats}` : `<span class="up">${v.pour}</span> · <span class="down">${v.contre}</span>`}</span></div>`;
+      return `<div class="vg"><span class="dot" style="background:${g.col}"></span><span class="vg-n">${esc(g.name)}${g.id === S.me ? " (toi)" : ""}</span>
+        <span class="vg-v">${censure ? `${v.pour} / ${seatsOf(g)}` : `<span class="up">${v.pour}</span> · <span class="down">${v.contre}</span>`}</span></div>`;
     }).join("")}</div>`;
   }
 
@@ -770,10 +800,10 @@
     const done = laws.filter(([, st]) => STAMPS[st.status]).sort((a, b) => b[1].seq - a[1].seq);
     const cens = predictCensure();
     const cards = pending.map(([id, st]) => {
-      const L = LAW[id], g = GBY[L.by];
+      const L = LAW[id], g = GBY[byOf(L)];
       const [vp, cp] = verdict(lawShares(L, "pour", false));
       let lines, btns;
-      if (L.gov) {
+      if (isGov(L)) {
         const [vc, cc] = cens >= MAJ ? ["Chute probable", "down"] : cens >= MAJ - 30 ? ["Ça passe de justesse", "warn"] : ["Ça passe", "up"];
         lines = `<div class="pt-line"><span>Si on met au vote</span><span class="${cp}">${vp}</span></div>
           <div class="pt-line"><span>Si 49.3 : ~${cens} voix de censure sur ${MAJ}</span><span class="${cc}">${vc}</span></div>`;
@@ -788,7 +818,7 @@
           <button class="lb" type="button" data-law="${id}" data-vote="contre">Voter contre <small>🔋${VOTE_COST}</small></button>`;
       }
       return `<article class="law">
-        <div class="law-by"><span class="gpill" style="background:${g.col}">${g.id}</span>${L.gov ? "Projet de loi du gouvernement" : `Proposition · ${esc(g.name)}`}</div>
+        <div class="law-by"><span class="gpill" style="background:${g.col}">${g.id}</span>${isGov(L) ? "Projet de loi du gouvernement" : `Proposition · ${esc(g.name)}`}</div>
         <h3>${esc(lawTitle(L))}</h3>
         <p>${esc(val(L.desc))}</p>
         ${lines}
@@ -800,7 +830,7 @@
       <div class="hemi-wrap">${hemicycle(null)}</div>
       <div class="legend">${C.groups.map(g => {
         const [m, col] = relMood(S.rel[g.id]);
-        return `<div class="lg"><span class="dot" style="background:${g.col}"></span><span class="lg-n">${esc(g.name)}</span><span class="lg-s">${g.seats}</span><span class="lg-m" style="color:${g.id === "CA" ? "var(--gold)" : col}">${g.id === "CA" ? "Ton groupe" : m}</span></div>`;
+        return `<div class="lg"><span class="dot" style="background:${g.col}"></span><span class="lg-n">${esc(g.name)}</span><span class="lg-s">${seatsOf(g)}</span><span class="lg-m" style="color:${g.id === S.me ? "var(--gold)" : col}">${g.id === S.me ? "Ton groupe" : m}</span></div>`;
       }).join("")}</div>
       <p class="hemi-note">Majorité absolue : <b>${MAJ}</b> sièges. Ton groupe en a 168. 49.3 utilisés : <b>${S.n493}</b>.</p>
       <h4 class="sec">À l’ordre du jour</h4>
@@ -855,7 +885,7 @@
     const who = { name: hawk ? "Lebâton" : "Mme Douce", av: hawk ? "🚓" : "🕊️", col: hawk ? "#2b4fa8" : "#4d7fa8" };
     let instr;
     if (L.revoke) instr = "contre";
-    else if (L.gov) {
+    else if (isGov(L)) {
       const r = lawShares(L, "pour", false);
       instr = r.pour > r.contre || !hawk ? "pour" : "493";
     } else instr = (hawk ? ["RH", "DP"] : ["VP", "PP", "HI"]).includes(L.by) ? "pour" : "contre";
@@ -887,6 +917,91 @@
         : `<p class="dnd-empty">Pour l’instant, rien. Tes ministres s’échauffent.</p>`}</div>
       <button class="btn-primary" type="button" id="btn-dnd-stop">Reprendre la main</button>
     </div>`;
+  }
+
+  // ------------------------------------------------------------------ programmes, promesses, Overton, élection
+  function renderProgrammes() {
+    $("#prog-list").innerHTML = C.programmes.map(p => {
+      const g = GBY[p.group];
+      return `<button class="prog" type="button" data-prog="${p.id}">
+        <span class="prog-h"><span class="prog-e">${p.emoji}</span><b>${esc(p.name)}</b><span class="gpill" style="background:${g.col}">${g.id}</span></span>
+        <span class="prog-p">${esc(p.pitch)}</span>
+        <span class="prog-l">${p.promises.map(x => `<span>· ${esc(x.text)}</span>`).join("")}</span>
+      </button>`;
+    }).join("");
+  }
+
+  function promisesCard(atEnd) {
+    const prog = C.programme(S);
+    const ic = { ok: "✅", broken: "❌", pending: "⏳" };
+    return `<div class="card prom"><h3>${prog.emoji} Tes promesses · ${esc(prog.name)}</h3>
+      ${C.promiseStates(S, atEnd).map(p => `<div class="prom-row ${p.st}"><span>${ic[p.st]}</span><span>${esc(p.text)}</span></div>`).join("")}
+    </div>`;
+  }
+
+  function overtonCard() {
+    const O = S.overton, mv = C.movement(S);
+    const pos = (O + 100) / 2;
+    const b = C.barrageLabel(O);
+    const bcol = b === "solide" ? "#34d68a" : b === "fragile" ? "#ffb020" : "#ff3d4a";
+    const mcol = mv.strong ? (mv.mate ? "#ff7a2f" : "#34d68a") : "#8b91a6";
+    return `<div class="card"><h3>Fenêtre d’Overton</h3>
+      <div class="ov">
+        <div class="ov-track"></div>
+        <div class="ov-win" style="left:${clamp(pos - 15, 0, 70)}%"></div>
+        ${C.groups.filter(g => g.id !== "DIV").map(g => `<span class="ov-g" style="left:${(C.positions[g.id] + 100) / 2}%;background:${g.col}">${g.id}</span>`).join("")}
+      </div>
+      <div class="ov-lbl"><span>Gauche de rupture</span><span>Droite autoritaire</span></div>
+      <p class="ov-txt">Ce qui se dit à la télé : <b>${C.overtonLabel(O)}</b></p>
+      <div class="bar-row"><span>Barrage</span><span class="mood-pill" style="background:${bcol}22;color:${bcol};justify-self:start">Barrage anti-RH ${b}</span><span></span></div>
+      <div class="bar-row"><span>La rue</span><span class="mood-pill" style="background:${mcol}22;color:${mcol};justify-self:start">${mv.label}</span><span></span></div>
+    </div>`;
+  }
+
+  function pollCard() {
+    const lp = S.lastPoll;
+    if (!lp) return `<div class="card"><h3>Intentions de vote</h3><p class="note-s">Premier sondage à la fin de la semaine 4.</p></div>`;
+    return `<div class="card"><h3>Intentions de vote · semaine ${lp.week}</h3>
+      ${lp.r1.slice(0, 5).map(c => barRow(esc(C.candName(S, c.id)), c.pct * 2, 0, GBY[c.id].col).replace(`>${Math.round(c.pct * 2)}<`, `>${Math.round(c.pct)} %<`)).join("")}
+    </div>`;
+  }
+
+  function showElection() {
+    S.running = false;
+    const el = C.election(S, { noise: 0.06, atEnd: true });
+    S.election = el;
+    voteOpen = true;
+    const kept = C.promiseStates(S, true).filter(p => p.st === "ok").length;
+    const row = c => {
+      const g = GBY[c.id];
+      return `<div class="el-row${c.id === S.me ? " me" : ""}">
+        <span class="el-n">${esc(C.candName(S, c.id))}<small>${esc(g.name)}</small></span>
+        <span class="el-bar"><i style="width:${Math.min(100, c.pct * (el.r1.includes(c) ? 2 : 1)).toFixed(1)}%;background:${g.col}"></i></span>
+        <span class="el-v">${c.pct.toFixed(1).replace(".", ",")} %</span>
+      </div>`;
+    };
+    const won = el.winner === S.me;
+    $("#election").innerHTML = `<div class="vt">
+      <span class="k">Dimanche · 20 h · Élection présidentielle</span>
+      <h2>Soirée électorale</h2>
+      <h4 class="el-sec">Premier tour</h4>
+      <div class="el-list">${el.r1.map(row).join("")}</div>
+      <h4 class="el-sec r2">Second tour</h4>
+      <div class="el-list r2">${el.r2.map(row).join("")}</div>
+      <div class="stamp ${won ? "ok" : "ko"} el-stamp">${won ? "Réélu" : `${esc(C.candName(S, el.winner))} élu`}</div>
+      <p class="note el-note">Fenêtre d’Overton : ${C.overtonLabel(S.overton).toLowerCase()}. Barrage contre le RH : ${C.barrageLabel(S.overton)}. Promesses tenues : ${kept} sur 4.</p>
+      <button class="btn-primary el-btn" id="btn-election" type="button">Voir la suite</button>
+    </div>`;
+    $("#election").hidden = false;
+    $("#election").scrollTop = 0;
+    $("#dead").hidden = true;
+    $("#banner").hidden = true;
+  }
+
+  function closeElection() {
+    $("#election").hidden = true;
+    voteOpen = false;
+    showEnding(S.election.winner === S.me ? "reelu" : `win_${S.election.winner}`);
   }
 
   // ------------------------------------------------------------------ rendu : statut & accueil
@@ -934,7 +1049,7 @@
   function renderHome() {
     const [m, col] = mood();
     $("#widget").innerHTML = `
-      <span class="wk">Semaine ${S.week} / 8</span>
+      <span class="wk">Semaine ${S.week} / 8 · ${C.programme(S).emoji} ${esc(C.programme(S).name)}</span>
       <span class="wt">${esc(C.weeks[S.week].title)}</span>
       <span class="wpop"><b>${Math.round(pop())}%</b><small>Popularité</small></span>
       <span class="wmood">Climat social <span class="mood-pill" style="background:${col}22;color:${col}">${m}</span></span>
@@ -1074,6 +1189,8 @@
         ${planetRow()}
         <div class="bar-row"><span>Climat</span><span class="mood-pill" style="background:${col}22;color:${col};justify-self:start">${m}</span><span></span></div>
       </div>
+      ${overtonCard()}
+      ${pollCard()}
       <div class="card"><h3>Bilan du mandat</h3>
         <div class="stats">
           <div class="stat"><b>${S.stats.blesses.toLocaleString("fr-FR")}</b><span>manifestants blessés</span></div>
@@ -1116,7 +1233,7 @@
   }
 
   function renderAgenda() {
-    let html = "";
+    let html = promisesCard(false);
     for (let w = 1; w <= 8; w++) {
       const wk = C.weeks[w];
       const cls = w < S.week ? "past" : w === S.week ? "now" : "";
@@ -1191,7 +1308,7 @@
   }
 
   function markEnding(id) {
-    const seen = seenEndings();
+    const seen = seenEndings().filter(k => C.endings[k]);
     if (!seen.includes(id)) seen.push(id);
     try { localStorage.setItem("npd_endings", JSON.stringify(seen)); } catch { /* stockage indisponible */ }
     return seen;
@@ -1207,28 +1324,37 @@
     const E = C.endings[id];
     const p = pop();
     const rep = REPRESSION_FLAGS.filter(f => S.flags[f]).length;
-    let text = E.text, vote = "";
+    let text = E.text, vote = "", you = "";
+    const el = S.election;
     if (id === "reelu") {
-      const v = (50.1 + (p - 45) * 1.1).toFixed(1).replace(".", ",");
+      const v = (el ? el.r2[0].pct : 50.1 + (p - 45) * 1.1).toFixed(1).replace(".", ",");
+      const kept = C.promiseStates(S, true).filter(x => x.st === "ok").length;
       vote = `${v} %`;
-      text = rep >= 4
+      text = kept >= 3
+        ? `Réélu avec ${v} %, et tu as tenu ${kept} promesses sur 4. Ça arrive. Rarement. Les historiens vérifieront deux fois.`
+        : kept <= 1
+          ? `Réélu avec ${v} %, en ayant trahi ${4 - kept} promesses sur 4. Tes électeurs ont voté pour toi « faute de mieux ». La démocratie a ses mystères.`
+          : rep >= 4
         ? `Réélu avec ${v} %. Les autres sont en garde à vue. Le soir de la victoire, la place est vide : les rassemblements sont interdits. Tu fêtes ça avec le préfet. Il a apporté des lacrymos, par habitude.`
         : S.colere < 45
           ? `Réélu avec ${v} %. Le pays n’est pas guéri, mais il respire. Tu as appris un truc rare : écouter coûte moins cher que réprimer. Personne ne te croira.`
           : `Réélu de justesse avec ${v} %, dans un pays qui ne se parle plus. Tu as gagné l’élection. Tu as perdu tout le reste.`;
-    } else if (id === "battu") {
-      const v = clamp(49.9 - (45 - p) * 1.1, 4, 49.9).toFixed(1).replace(".", ",");
-      vote = `${v} %`;
-      text = `Tu perds avec ${v} %. Tu rejoins quatre conseils d’administration, tu écris un livre (« Ma vérité »), tu factures tes conférences 80 000 € l’heure. Finalement, perdre, c’est pas si mal. Pour toi.`;
+    } else if (id.startsWith("win_") && el) {
+      const v = el.r2[0].pct.toFixed(1).replace(".", ",");
+      vote = `${C.candName(S, el.winner)} · ${v} %`;
+      text = text.replace("{p}", v);
+      you = C.youSentence(S, el);
     }
     text = text.replace("{n}", id === "revoque" ? S.revokePct : S.lastCensure);
     const seen = markEnding(id);
-    const el = $("#ending");
-    el.innerHTML = `<div class="rc">
+    const box = $("#ending");
+    box.innerHTML = `<div class="rc">
       <span class="end-k">Fin · Semaine ${S.week}</span>
       <h2 class="end-t">${esc(E.title)}</h2>
-      ${vote ? `<span class="end-vote">${vote}</span>` : ""}
+      ${vote ? `<span class="end-vote">${esc(vote)}</span>` : ""}
       <p class="end-p">${esc(text)}</p>
+      ${you ? `<p class="end-p end-you">${esc(you)}</p>` : ""}
+      ${promisesCard(true)}
       <div class="card epi"><h3>Ce qu’ils sont devenus</h3>
         ${C.epilogue.map(c => `<div class="epi-row"><span class="av" style="background:${c.col}">${c.av}</span><div><b>${esc(c.name)}</b><small>${esc(c.role)}</small><p>${esc(c.text(S))}</p></div></div>`).join("")}
       </div>
@@ -1253,9 +1379,9 @@
       </div>
       <button class="btn-primary" type="button" id="btn-again">Nouveau mandat</button>
     </div>`;
-    el.hidden = false;
-    el.scrollTop = 0;
-    $("#btn-again").onclick = () => { el.hidden = true; newGame(); };
+    box.hidden = false;
+    box.scrollTop = 0;
+    $("#btn-again").onclick = () => { $("#ending").hidden = true; go("programme"); };
     updateStatus();
   }
 
@@ -1301,6 +1427,7 @@
   // ------------------------------------------------------------------ navigation
   function go(v) {
     view = v;
+    if (v === "programme") renderProgrammes();
     document.querySelectorAll(".view").forEach(el => el.classList.toggle("active", el.id === `v-${v}`));
     refresh();
   }
@@ -1323,8 +1450,8 @@
     else if (view === "assemblee") renderAssemblee();
   }
 
-  function newGame() {
-    S = newState();
+  function newGame(progId) {
+    S = newState(progId);
     for (let i = 0; i < 3; i++) {
       const [h, t] = C.ambient.calm[i];
       S.feed.push({ h, t, likes: Math.floor(rnd(40, 3000)), rts: Math.floor(rnd(5, 400)), time: "Dim 22:1" + i });
@@ -1337,7 +1464,9 @@
   document.addEventListener("click", ev => {
     const t = ev.target.closest("button, [data-app]");
     if (!t) return;
-    if (t.id === "btn-start") return newGame();
+    if (t.id === "btn-start") return go("programme");
+    if (t.dataset.prog) return newGame(t.dataset.prog);
+    if (t.id === "btn-election") return closeElection();
     if (t.id === "btn-unlock") return startWeek(1);
     if (t.id === "homebar") { if (S && !["title", "lock"].includes(view)) go("home"); return; }
     if (t.id === "ff") { if (S && S.running && !S.call && !S.dead) { S.speed = S.speed > 1 ? 1 : FAST; updateStatus(); } return; }
