@@ -73,7 +73,9 @@
     // ===== Semaine 3
     { id: "l_immigration", w: 3, at: 0.12, by: "CA",
       title: "Loi Immigration « Équilibrée »",
-      desc: "On reprend 80 % du programme du RH, avec un ton apaisé et une police de caractère plus douce. Clémence appelle ça « la fermeté humaniste ».",
+      desc: S => S.me === "CA"
+        ? "On reprend 80 % du programme du RH, avec un ton apaisé et une police de caractère plus douce. Clémence appelle ça « la fermeté humaniste »."
+        : "Le Centre Absolu reprend 80 % du programme du RH, avec un ton apaisé et une police de caractère plus douce. Il appelle ça « la fermeté humaniste ».",
       st: { HI: 0, VP: 0, PP: 0.1, CA: 0.7, DIV: 0.45, DP: 0.8, RH: 0.65 },
       yes: { fx: { retraites: 5, police: 5, jeunes: -8, colere: 5 }, rel: { RH: 10, HI: -10, VP: -8, PP: -8 }, set: { loiImmig: true },
              news: "Loi Immigration adoptée grâce au RH. Steeve Frontière : « Une victoire idéologique. Merci qui ? »",

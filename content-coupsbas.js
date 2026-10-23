@@ -24,14 +24,14 @@
           posts: [["@MaximeTonnerre", "On nous accuse d’avoir organisé les violences. Qu’ils montrent une preuve. Une seule. On attend."]],
           leak: { p: 0.55, fx: { jeunes: -6, colere: 4 }, image: { HI: 4 }, rel: { VP: -5, PP: -5 },
                   news: "FACT-CHECK : L’Écho démontre que l’accusation contre l’HI a été fabriquée à l’Élysée" } },
-        { t: "Fais-le dire par Lebâton, pas par moi.", cost: 3, r: "Malin. Si ça tourne mal, c’est lui qui saute.",
+        { t: "Fais-le dire par Lebâton, pas par moi.", cost: 3, when: S => !S.flags.lebatonVire, r: "Malin. Si ça tourne mal, c’est lui qui saute.",
           fx: { overton: 2 }, rel: { HI: -10 }, image: { HI: -4 },
           leak: { p: 0.35, fx: { jeunes: -4, colere: 3 }, image: { HI: 3 },
                   news: "Lebâton a accusé l’HI « sur instruction de l’Élysée », révèle un SMS" } },
         { t: "Non. C’est faux, on ne dit pas ça.", cost: 2, r: "D’accord. C’est rare, un Président qui refuse un mensonge rentable. Je le note quelque part.",
           rel: { HI: 3 } },
       ],
-      d: { r: "Pas de réponse. Lebâton l’a dit quand même, à la télé. Tu sais comment il est.", fx: { overton: 2 }, image: { HI: -3 }, rel: { HI: -8 } } },
+      d: { r: "Pas de réponse. Quelqu’un de ton camp l’a dit quand même, à la télé. Il y a toujours quelqu’un.", fx: { overton: 2 }, image: { HI: -3 }, rel: { HI: -8 } } },
 
     // ===== Semaine 3 : L'Écho révèle les messages racistes de candidats RH
     { id: "cb_echo_rh", w: 3, at: 0.56, from: "chloe", alt: "cb_echo", when: S => S.me !== "RH",

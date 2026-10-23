@@ -29,7 +29,12 @@
   C.alerts.forEach(e => { EV[e.id] = e; });
 
   const $ = s => document.querySelector(s);
-  const esc = s => String(s).replace(/[&<>"]/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]));
+  // les noms des ministres changent selon ton gouvernement (Rabot devient M. Partage, etc.)
+  const esc = s => {
+    let t = String(s);
+    if (S && S.names) for (const [a, b] of Object.entries(S.names)) t = t.split(a).join(b);
+    return t.replace(/[&<>"]/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]));
+  };
   const clamp = (v, a, b) => Math.max(a, Math.min(b, v));
   const rnd = (a, b) => a + Math.random() * (b - a);
   const pick = a => a[Math.floor(Math.random() * a.length)];
@@ -57,6 +62,7 @@
     if (me !== "CA" && !(prog.start.rel && "CA" in prog.start.rel)) rel.CA = 40;
     return {
       programme: prog.id, me, seats, overton: prog.overton, lastPoll: null,
+      names: prog.names || null, castContacts: prog.contacts || null,
       image: Object.fromEntries(C.groups.map(x => [x.id, 0])),
       week: 1, t: 0, speed: 1, running: false, battery: 100, dead: false, deadAt: null, lowWarned: false,
       g,
@@ -64,7 +70,7 @@
       rel,
       laws: {}, n493: 0, lastCensure: 0, revokePct: 0, pendingEnd: null, altUsed: {}, alerts: {},
       dnd: null, dndWeek: 0, dndUsed: {}, cposts: {},
-      flags: {},
+      flags: { ...(prog.flags || {}) },
       stats: { blesses: 0, gav: 0, fuites: 0, ignores: 0, feries: 0, lois: 0, dnd: 0 },
       convs: {}, seq: 1,
       feed: [], feedUnread: 0, news: [], newsUnread: 0,
@@ -77,7 +83,7 @@
 
   const pop = () => GROUPS.reduce((s, k) => s + S.g[k] * WEIGHTS[k], 0);
   const dayIdx = () => Math.floor(clamp(S.t, 0, 0.9999) * 7);
-  const contact = id => C.contacts[id] || { name: id, av: "❓", col: "#444" };
+  const contact = id => (S && S.castContacts && S.castContacts[id]) || C.contacts[id] || { name: id, av: "❓", col: "#444" };
 
   function mood() {
     const c = S.colere;

@@ -6,6 +6,7 @@ require(__dirname + '/../content.js');
 require(__dirname + '/../content-parlement.js');
 require(__dirname + '/../content-citoyens.js');
 require(__dirname + '/../content-programmes.js');
+require(__dirname + '/../content-gouvernements.js');
 require(__dirname + '/../content-coupsbas.js');
 const C = window.CONTENT;
 
@@ -34,7 +35,7 @@ function game(strat, progId = "centre") {
     week: 1, t: 0, g: g0,
     ordre: 60, budget: 68, colere: 30, eco: 40, battery: 100, spent: 0, dead: false,
     rel: rel0, laws: {}, n493: 0,
-    flags: {}, stats: { blesses: 0, gav: 0, fuites: 0, ignores: 0, feries: 0, lois: 0 },
+    flags: { ...(prog.flags || {}) }, stats: { blesses: 0, gav: 0, fuites: 0, ignores: 0, feries: 0, lois: 0 },
     poolUsed: {}, ending: null, log: [], altUsed: {}, alerts: {}, dnd: false, dndN: 0, dndUsed: {},
   };
   const val = x => (typeof x === "function" ? x(S) : x);

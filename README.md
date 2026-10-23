@@ -31,6 +31,7 @@ Aucune installation, aucun build.
 - `content-parlement.js` : groupes parlementaires, textes de loi, chefs de groupe, écologie.
 - `content-citoyens.js` : citoyens récurrents, épilogues, initiatives des ministres en mode Ne pas déranger.
 - `content-programmes.js` : programmes, promesses, fenêtre d'Overton, calcul de l'élection et fins selon le gagnant (partagé avec le simulateur).
+- `content-gouvernements.js` : ce qui change selon ton gouvernement : ministres, première décision économique, budget, gestion de la police.
 - `content-coupsbas.js` : coups bas lancés ou subis, et leur effet sur l'image des candidats.
 - `game.js` : moteur (temps, batterie, fuites, fins) et rendu des applis du téléphone.
 - `style.css`, `index.html` : interface.
