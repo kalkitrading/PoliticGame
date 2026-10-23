@@ -74,7 +74,7 @@ window.CONTENT = {
           posts: [["@Mamie_Ginette", "84 ans. Pension gelée. Moi aussi je vais finir gelée cet hiver. #GelDesPensions"]] },
         { t: "On taxe plutôt les super-riches.", cost: 10,
           r: "Ah. Vallon-Dividende va t’appeler. Il a ton numéro perso. Il a le numéro de tout le monde.",
-          fx: { budget: 10, patrons: -18, ouvriers: 8, jeunes: 6, colere: -6 },
+          fx: { budget: 10, patrons: -14, ouvriers: 8, jeunes: 6, colere: -6 },
           set: { taxeRiches: true }, rel: { HI: 10, VP: 5, DP: -10 },
           news: "Taxe sur les ultra-riches : la Bourse perd 4 %, les yachts quittent les ports",
           posts: [["@EntrepreneurDuDim", "C’est la fin. Je pars au Portugal. Comme les 6 dernières fois. #TaxeRiches"],
@@ -145,7 +145,7 @@ window.CONTENT = {
       d: { r: "vu. tranquille. jferai une vidéo sur toi quand même 😈", fx: { jeunes: -3 } } },
 
     // ============================ SEMAINE 2 — JEUDI NOIR
-    { id: "w2_josy_a", w: 2, at: 0.05, from: "josy", when: S => !S.flags.taxeRiches,
+    { id: "w2_josy_a", w: 2, at: 0.05, from: "josy", alt: "w2_josy", when: S => !S.flags.taxeRiches,
       m: ["La mobilisation est confirmée pour jeudi. On attend un million de personnes.",
           "Dernière chance : retirez votre plan."],
       c: [
@@ -164,7 +164,7 @@ window.CONTENT = {
       ],
       d: { r: "Pas de réponse. Alors on marche.", fx: { colere: 6 } } },
 
-    { id: "w2_josy_b", w: 2, at: 0.05, from: "josy", when: S => S.flags.taxeRiches,
+    { id: "w2_josy_b", w: 2, at: 0.05, from: "josy", alt: "w2_josy", when: S => S.flags.taxeRiches,
       m: ["La taxe sur les riches, chapeau. Mais les gens ne mangent pas des symboles.",
           "Loyers, salaires, essence… Jeudi on marche quand même. Pacifiquement."],
       c: [
@@ -177,7 +177,7 @@ window.CONTENT = {
       ],
       d: { r: "Pas de réponse. Rendez-vous jeudi.", fx: { colere: 3 } } },
 
-    { id: "w2_vallon_a", w: 2, at: 0.22, from: "vallon", when: S => S.flags.taxeRiches,
+    { id: "w2_vallon_a", w: 2, at: 0.22, from: "vallon", alt: "w2_vallon", when: S => S.flags.taxeRiches,
       m: ["Président. Édouard de Vallon-Dividende.",
           "Si votre taxe passe, je délocalise 4 usines, mon yacht et ma mère en Suisse."],
       c: [
@@ -192,7 +192,7 @@ window.CONTENT = {
       ],
       d: { r: "Votre silence est très éloquent. Mes avocats aussi.", fx: { patrons: -4 } } },
 
-    { id: "w2_vallon_b", w: 2, at: 0.22, from: "vallon", when: S => !S.flags.taxeRiches,
+    { id: "w2_vallon_b", w: 2, at: 0.22, from: "vallon", alt: "w2_vallon", when: S => !S.flags.taxeRiches,
       m: ["Président, bravo pour votre courage. Petite question technique :",
           "On pourrait aussi supprimer le SMIC ? Pour la compétitivité. Et la dignité, c’est surfait."],
       c: [
@@ -223,7 +223,7 @@ window.CONTENT = {
            fx: { ordre: 6, police: 5, jeunes: -8, colere: 12, blesses: 410, gav: 900 }, set: { charge: true },
            news: "JEUDI NOIR : le Président injoignable, la police charge" } },
 
-    { id: "w2_video_a", w: 2, at: 0.58, from: "clemence", when: S => !S.flags.retrait,
+    { id: "w2_video_a", w: 2, at: 0.58, from: "clemence", alt: "w2_video", when: S => !S.flags.retrait,
       m: ["🚨 Une vidéo cartonne : un CRS frappe un manifestant à terre. 4 millions de vues. #JeudiNoir",
           "On dit quoi ?"],
       c: [
@@ -243,7 +243,7 @@ window.CONTENT = {
       d: { r: "Pas de réponse. J’ai publié « Pensées pour tout le monde ». Ça a très mal marché.",
            fx: { jeunes: -5, colere: 5 } } },
 
-    { id: "w2_video_b", w: 2, at: 0.58, from: "clemence", when: S => S.flags.retrait,
+    { id: "w2_video_b", w: 2, at: 0.58, from: "clemence", alt: "w2_video", when: S => S.flags.retrait,
       m: ["🚨 Sans police, des casseurs ont pillé un magasin de téléphones. 4 millions de vues.",
           "La droite hurle au chaos. On dit quoi ?"],
       c: [
@@ -442,7 +442,7 @@ window.CONTENT = {
       d: { r: "Pas de commentaire. Je l’écris : « L’Élysée n’a pas souhaité répondre ». Mes lecteurs adorent.",
            fx: { retraites: -4, jeunes: -4, colere: 5 } } },
 
-    { id: "w5_lebaton", w: 5, at: 0.3, from: "lebaton", when: S => !S.flags.lebatonVire,
+    { id: "w5_lebaton", w: 5, at: 0.3, alt: "w5_interieur", from: "lebaton", when: S => !S.flags.lebatonVire,
       m: ["Président, cette journaliste nous gêne.",
           "On pourrait perquisitionner L’Écho. Motif : « atteinte au secret de la défense ». Ça marche à tous les coups."],
       c: [
@@ -455,7 +455,7 @@ window.CONTENT = {
       d: { r: "Pas de réponse. J’ai perquisitionné. Par réflexe.",
            fx: { ordre: 4, jeunes: -10, colere: 10 }, set: { perquisition: true } } },
 
-    { id: "w5_douce", w: 5, at: 0.3, from: "douce", when: S => S.flags.lebatonVire,
+    { id: "w5_douce", w: 5, at: 0.3, alt: "w5_interieur", from: "douce", when: S => S.flags.lebatonVire,
       m: ["Bonjour Président, votre nouvelle ministre de l’Intérieur.",
           "Je propose… rien. On respire. On désescalade. On arrête de gazer des lycéens."],
       c: [
@@ -505,12 +505,12 @@ window.CONTENT = {
       d: { r: "jprends ça pour un oui jai déjà imprimé ta tête sur 40 000 gourdes" } },
 
     // ============================ SEMAINE 6 — POINT DE BASCULE
-    { id: "w6_josy_hot", w: 6, at: 0.05, from: "josy", when: S => S.colere >= 55,
+    { id: "w6_josy_hot", w: 6, at: 0.05, from: "josy", alt: "w6_josy", when: S => S.colere >= 55,
       m: ["Grève générale reconductible à partir de lundi.",
           "Trains, écoles, hôpitaux, éboueurs. Le pays s’arrête. On ne lâchera rien."],
       c: [
         { t: "Je cède sur tout.", cost: 10, r: "Tout ? …On n’avait pas prévu ça. On va devoir rentrer chez nous. C’est déstabilisant.",
-          fx: { budget: -12, colere: -25, patrons: -15, ouvriers: 15, jeunes: 8 }, set: { cede: true },
+          fx: { budget: -12, colere: -25, patrons: -10, ouvriers: 15, jeunes: 8 }, set: { cede: true },
           news: "CAPITULATION : le Président cède sur toutes les revendications" },
         { t: "On réquisitionne tout le monde.", cost: 8, r: "Même les éboueurs ? Bonne chance avec l’odeur.",
           fx: { ordre: 8, colere: 12, ouvriers: -12, gav: 2000 },
@@ -519,7 +519,7 @@ window.CONTENT = {
       ],
       d: { r: "Pas de réponse. Le pays s’arrête lundi.", fx: { colere: 8, ordre: -8, budget: -6 } } },
 
-    { id: "w6_josy_calm", w: 6, at: 0.05, from: "josy", when: S => S.colere < 55,
+    { id: "w6_josy_calm", w: 6, at: 0.05, from: "josy", alt: "w6_josy", when: S => S.colere < 55,
       m: ["La mobilisation s’essouffle. On va reprendre le travail.",
           "Mais on n’oublie pas."],
       c: [
@@ -600,7 +600,7 @@ window.CONTENT = {
       d: { r: "Pas de réponse. La loi passe au 49.3. Personne n’a vraiment décidé, c’est très reposant.",
            fx: { ordre: 12, jeunes: -12, colere: 14, police: 8, gav: 1500 }, set: { securiteAbsolue: true } } },
 
-    { id: "w7_eco_low", w: 7, at: 0.24, from: S => S.flags.rabotVire ? "bercy" : "rabot", when: S => S.budget < 35,
+    { id: "w7_eco_low", w: 7, at: 0.24, alt: "w7_eco", from: S => S.flags.rabotVire ? "bercy" : "rabot", when: S => S.budget < 35,
       m: ["L’agence de notation menace de dégrader l’Hexagonie. De AA à « bof ».",
           "Il faut un signal aux marchés."],
       c: [
@@ -613,7 +613,7 @@ window.CONTENT = {
       ],
       d: { r: "Pas de réponse. Note dégradée. Les marchés pleurent. Toi aussi, bientôt.", fx: { budget: -5, patrons: -6 } } },
 
-    { id: "w7_eco_high", w: 7, at: 0.24, from: S => S.flags.rabotVire ? "bercy" : "rabot", when: S => S.budget >= 35,
+    { id: "w7_eco_high", w: 7, at: 0.24, alt: "w7_eco", from: S => S.flags.rabotVire ? "bercy" : "rabot", when: S => S.budget >= 35,
       m: ["Bonne nouvelle : on a un petit surplus. Une semaine avant l’élection.", "On en fait quoi ?"],
       c: [
         { t: "Prime de 300 € pour tous.", cost: 6, r: "Un chèque une semaine avant l’élection. Personne ne verra le lien.",

@@ -25,6 +25,7 @@
   const EV = {};
   C.events.forEach(e => { EV[e.id] = e; });
   C.pool.forEach(e => { EV[e.id] = e; });
+  C.alerts.forEach(e => { EV[e.id] = e; });
 
   const $ = s => document.querySelector(s);
   const esc = s => String(s).replace(/[&<>"]/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]));
@@ -47,7 +48,7 @@
       g: { jeunes: 38, ouvriers: 32, retraites: 55, patrons: 62, police: 58 },
       ordre: 60, budget: 60, colere: 30, eco: 40,
       rel: Object.fromEntries(C.groups.map(g => [g.id, g.rel])),
-      laws: {}, n493: 0, lastCensure: 0, revokePct: 0, pendingEnd: null,
+      laws: {}, n493: 0, lastCensure: 0, revokePct: 0, pendingEnd: null, altUsed: {}, alerts: {},
       flags: {},
       stats: { blesses: 0, gav: 0, fuites: 0, ignores: 0, feries: 0, lois: 0 },
       convs: {}, seq: 1,
@@ -155,7 +156,16 @@
     for (const e of C.events) {
       if (e.w !== S.week || S.spawned[e.id] || e.at > S.t) continue;
       S.spawned[e.id] = true;
-      if (!e.when || e.when(S)) deliver(e);
+      // une seule variante d'un même message
+      if (e.alt && S.altUsed[e.alt]) continue;
+      if (!e.when || e.when(S)) { if (e.alt) S.altUsed[e.alt] = true; deliver(e); }
+    }
+    for (const a of C.alerts) {
+      if (S.alerts[a.id] || S.dead || !a.when(S)) continue;
+      const cv = S.convs[val(a.from)];
+      if (cv && cv.pending) continue; // on attend que le contact soit libre
+      S.alerts[a.id] = true;
+      deliver(a);
     }
     for (const L of C.laws) {
       if (L.w !== S.week || S.laws[L.id] || L.at > S.t) continue;
@@ -444,6 +454,10 @@
     if (S.colere >= 90) S.ordre -= 6;
     S.ordre = clamp(Math.round(S.ordre + (50 - S.ordre) * 0.1), 0, 100);
     S.budget = clamp(S.budget - 1, 0, 100);
+    // les marchés ont la mémoire courte
+    S.g.patrons = clamp(Math.round(S.g.patrons + (45 - S.g.patrons) * 0.15), 0, 100);
+    // l'usure du pouvoir : les citoyens se lassent un peu chaque semaine
+    ["jeunes", "ouvriers", "retraites"].forEach(k => { S.g[k] = clamp(S.g[k] - 2, 0, 100); });
     S.popHist.push(Math.round(pop()));
     $("#dead").hidden = true;
     $("#banner").hidden = true;
@@ -516,7 +530,7 @@
 
   // chaque 49.3 de plus use la patience de l'opposition
   function censureShares(rel, n493, noise) {
-    const usure = 4 * Math.max(0, n493 - 1);
+    const usure = 4 * Math.pow(Math.max(0, n493 - 1), 1.5);
     const groups = {};
     let pour = 0;
     for (const g of C.groups) {
@@ -1027,6 +1041,7 @@
     if (S.deadAt) notes.push(`Ton téléphone est mort ${S.deadAt}.`);
     const pending = S.sched.filter(q => q.kind === "leak").length;
     if (pending) notes.push(`Quelque part, quelqu’un garde une capture d’écran.`);
+    if (S.week === 1) notes.push(`L’usure du pouvoir te coûte un peu de popularité chaque semaine. Rester immobile, c’est reculer.`);
     if (S.ecoWeek >= 0) notes.push(`Rien n’a été fait pour le climat cette semaine. La dette écologique monte quand même : le CO₂ ne lit pas l’ordre du jour.`);
     const waiting = Object.values(S.laws).filter(l => l.status === "pending").length;
     if (waiting) notes.push(`<b>${waiting}</b> texte${waiting > 1 ? "s" : ""} en attente à l’Assemblée. Sans vote, ils seront enterrés.`);

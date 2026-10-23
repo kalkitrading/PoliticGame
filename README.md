@@ -25,3 +25,4 @@ Aucune installation, aucun build.
 - `content-parlement.js` : groupes parlementaires, textes de loi, chefs de groupe, écologie.
 - `game.js` : moteur (temps, batterie, fuites, fins) et rendu des applis du téléphone.
 - `style.css`, `index.html` : interface.
+- `tools/equilibrage.js` : simulateur d'équilibrage. `node tools/equilibrage.js 3000` joue 3 000 parties par profil de joueur (hasard, répressif, social, stratège, joueur moyen…) et affiche la répartition des fins. `node tools/equilibrage.js 1 moyen` détaille une partie.

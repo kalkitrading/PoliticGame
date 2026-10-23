@@ -44,7 +44,7 @@
       title: "Interdiction des jets privés",
       desc: "Les milliardaires devront prendre le train. En première classe, on n’est pas des monstres.",
       st: { HI: 0.9, VP: 1, PP: 0.75, CA: 0.3, DIV: 0.4, DP: 0.05, RH: 0.25 },
-      yes: { fx: { eco: -10, patrons: -12, jeunes: 5, ouvriers: 3 }, rel: { VP: 10, HI: 4, DP: -6 },
+      yes: { fx: { eco: -10, patrons: -8, jeunes: 5, ouvriers: 3 }, rel: { VP: 10, HI: 4, DP: -6 },
              news: "Jets privés interdits : Vallon-Dividende découvre le TGV et porte plainte contre le wagon-bar",
              posts: [["@CapucineLombric", "Victoire ! Les riches vont enfin respirer le même air que nous. Un peu moins pollué, du coup."]] },
       no: { fx: { jeunes: -3 }, news: "Jets privés : l’Assemblée défend la liberté de polluer en altitude" } },
@@ -65,7 +65,7 @@
       title: "SMIC à 2 000 € net",
       desc: "Financé par une taxe sur les dividendes, les yachts et « tout ce qui brille ».",
       st: { HI: 1, VP: 0.8, PP: 0.75, CA: 0.1, DIV: 0.3, DP: 0, RH: 0.3 },
-      yes: { fx: { ouvriers: 12, jeunes: 6, patrons: -18, budget: -5, colere: -10 }, rel: { HI: 10, PP: 4, DP: -8 },
+      yes: { fx: { ouvriers: 12, jeunes: 6, patrons: -12, budget: -5, colere: -10 }, rel: { HI: 10, PP: 4, DP: -8 },
              news: "SMIC à 2 000 € : liesse dans les supermarchés, malaise au Mouvement des Entreprises Dodues",
              posts: [["@MaximeTonnerre", "Le peuple a gagné. Ce soir, pâtes au beurre ET au fromage."]] },
       no: { fx: { ouvriers: -4, colere: 3 }, news: "SMIC à 2 000 € rejeté : les députés, payés 7 600 € par mois, jugent la mesure « irréaliste »" } },
@@ -172,7 +172,7 @@
       title: "Loi Climat d’urgence",
       desc: "Soutenue par 4 000 scientifiques. Neutralité carbone en 2040, sortie des pesticides, plan train massif. Les lobbies ont déjà réservé tous les restaurants autour de l’Assemblée.",
       st: { HI: 0.75, VP: 1, PP: 0.7, CA: 0.35, DIV: 0.4, DP: 0.05, RH: 0.05 },
-      yes: { fx: { eco: -25, patrons: -10, ouvriers: -4, jeunes: 10, retraites: -3, colere: 2 }, rel: { VP: 15, HI: 5, DP: -8 },
+      yes: { fx: { eco: -25, patrons: -8, ouvriers: -4, jeunes: 10, retraites: -3, colere: 2 }, rel: { VP: 15, HI: 5, DP: -8 },
              news: "Loi Climat d’urgence adoptée : les scientifiques pleurent de joie, les lobbyistes pleurent tout court" },
       no: { fx: { jeunes: -6 }, news: "Loi Climat d’urgence rejetée. Les 4 000 scientifiques retournent à leurs courbes" },
       against: S => S.flags.promesseVP ? { rel: { VP: -20 }, news: "Capucine Lombric : « Le Président m’a menti. Le climat, lui, ne ment pas »" } : null },
@@ -282,6 +282,51 @@
   C.ambient.angry.push(
     ["@MaximeTonnerre", "Le 49.3, c’est la démocratie en mode avion. #Censure"],
   );
+
+  // ---------------------------------------------------------------- ALERTES
+  // Envoyées une seule fois, quand une jauge approche d'une fin brutale.
+  C.alerts = [
+    { id: "a_patrons", from: "parti", when: S => S.g.patrons < 20,
+      m: ["Président, alerte : le patronat appelle nos députés un par un.",
+          "Si leur soutien tombe sous 5 %, le groupe votera la censure. Ils ont déjà imprimé les bulletins."],
+      c: [
+        { t: "Je vais les rassurer.", cost: 2, r: "Vite. Ils aiment les baisses d’impôts et les dîners en terrasse." },
+        { t: "Qu’ils essaient.", cost: 2, r: "Ils vont essayer." },
+      ],
+      d: { r: "Pas de réponse. Les patrons prennent ça pour du mépris. Ils n’ont pas tort." } },
+    { id: "a_police", from: "general", when: S => S.g.police < 20,
+      m: ["Président, la troupe gronde. Les policiers ne vous suivent plus.",
+          "Sous 8 % de soutien, je ne réponds plus de rien. Enfin si : je réponds de tout. Moi."],
+      c: [
+        { t: "Message reçu.", cost: 2, r: "Je l’espère." },
+        { t: "C’est une menace ?", cost: 2, r: "C’est une prévision météo. Avec des chars." },
+      ],
+      d: { r: "Pas de réponse. Les casernes en prennent note." } },
+    { id: "a_budget", from: S => S.flags.rabotVire ? "bercy" : "rabot", when: S => S.budget < 15,
+      m: ["Les caisses sont presque vides. À zéro, le FMI débarque.",
+          "Il faut trouver de l’argent. N’importe où. Même dans le canapé de l’Élysée."],
+      c: [
+        { t: "Je m’en occupe.", cost: 2, r: "J’ai déjà vérifié le canapé : 3 € et une télécommande." },
+        { t: "On empruntera.", cost: 2, r: "Les prêteurs aussi lisent les sondages." },
+      ],
+      d: { r: "Pas de réponse. Le FMI a réservé un hôtel à côté." } },
+    { id: "a_colere", from: "clemence", when: S => S.colere >= 85,
+      m: ["Président, la rue est à bout. Si l’ordre lâche, c’est la révolution.",
+          "J’ai repéré les sorties de secours. Il y en a trois. Deux sont murées."],
+      c: [
+        { t: "Je vais calmer le jeu.", cost: 2, r: "Bonne idée. Commence par ne rien écrire de cynique." },
+        { t: "La police tiendra.", cost: 2, r: "La police aussi lit Le Fil." },
+      ],
+      d: { r: "Pas de réponse. J’ai rangé mes affaires dans un sac. Au cas où." } },
+    { id: "a_eco", from: "lombric", when: S => S.eco >= 72,
+      m: ["Président, les scientifiques sont formels : on approche du point de non-retour.",
+          "Si rien n’est voté pour le climat, c’est l’effondrement d’ici quelques semaines. Ce n’est pas une métaphore."],
+      c: [
+        { t: "Je vais agir.", cost: 2, r: "Je vous crois à moitié. C’est déjà beaucoup.", rel: { VP: 5 } },
+        { t: "Encore cette chanson.", cost: 2, r: "La chanson, c’est le bruit des incendies.", rel: { VP: -5 } },
+      ],
+      d: { r: "Pas de réponse. La planète non plus ne répond plus." } },
+  ];
 
   // ---------------------------------------------------------------- NOUVELLES FINS
   Object.assign(C.endings, {
