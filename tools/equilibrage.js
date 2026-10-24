@@ -8,6 +8,7 @@ require(__dirname + '/../content-citoyens.js');
 require(__dirname + '/../content-programmes.js');
 require(__dirname + '/../content-gouvernements.js');
 require(__dirname + '/../content-coupsbas.js');
+require(__dirname + '/../content-pente.js');
 const C = window.CONTENT;
 
 const G = ["jeunes", "ouvriers", "retraites", "patrons", "police"];
@@ -236,6 +237,7 @@ function game(strat, progId = "centre") {
     const e = checkEnd(); if (e) end(e);
     if (process.env.TRACE) console.log(`  fin S${w} pop=${pop().toFixed(0)} colère=${S.colere} ordre=${S.ordre} caisses=${S.budget} éco=${S.eco} 49.3=${S.n493} rel=${JSON.stringify(S.rel)}`);
   }
+  if (!S.ending && S.flags.pente) S.ending = "dictateur"; // La Pente n'est pas simulée
   if (!S.ending) {
     const el = C.election(S, { noise: 0.06, atEnd: true });
     S.el = el;

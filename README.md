@@ -23,7 +23,8 @@ Aucune installation, aucun build.
 - **Fenêtre d'Overton** : chaque choix fait glisser ce qui est « dicible » dans le pays. Plus elle glisse à droite, plus le barrage contre le RH s'effondre.
 - **Élection à deux tours** : en semaine 8, six candidats. Tu gagnes si tu es populaire et fidèle à ton programme. Sinon, tes électeurs trahis votent pour celui qui a fait ce que tu as fait : le Centre si tu as trahi vers le centre, le RH si tu as glissé à droite ou écrasé la rue, l'Hexagonie Indomptée si la rue est restée forte et écoutée.
 - **Coups bas** : diaboliser un adversaire, exploiter une révélation de L'Écho, louer une ferme à trolls, ressortir des dossiers « arrangés »… ou subir une vidéo truquée, un hashtag assassin, un chantage. Chaque coup bas change l'image des candidats à l'élection, et un mensonge peut être démonté plus tard par un fact-check.
-- **8 semaines** de crise jusqu'à l'élection, 18 fins à découvrir.
+- **La Pente** : si tu reportes les élections, le mandat continue 4 semaines. Huit décrets « raisonnables » arrivent dans l'appli Parapheur, du recensement aux convois. Un Conseiller poli t'encourage avec les phrases de l'expérience de Milgram. Tu peux refuser à chaque étape (au 4e refus, l'expérience s'arrête pour toi) ; un décret laissé sans réponse est signé par le Secrétariat général. Les mots changent, les conversations se taisent, l'interface se ternit. Le jeu ne récompense aucune signature.
+- **8 semaines** de crise jusqu'à l'élection (12 dans La Pente), 19 fins à découvrir.
 
 ## Fichiers
 
@@ -33,6 +34,7 @@ Aucune installation, aucun build.
 - `content-programmes.js` : programmes, promesses, fenêtre d'Overton, calcul de l'élection et fins selon le gagnant (partagé avec le simulateur).
 - `content-gouvernements.js` : ce qui change selon ton gouvernement : ministres, première décision économique, budget, gestion de la police.
 - `content-coupsbas.js` : coups bas lancés ou subis, et leur effet sur l'image des candidats.
+- `content-pente.js` : La Pente (décrets, Conseiller, citoyens, mots qui changent, épilogues et fins de cette branche).
 - `game.js` : moteur (temps, batterie, fuites, fins) et rendu des applis du téléphone.
 - `style.css`, `index.html` : interface.
 - `tools/equilibrage.js` : simulateur d'équilibrage. `node tools/equilibrage.js 1000` joue 1 000 parties pour chaque programme et chaque profil de joueur (fidèle, moyen, traître vers la droite, traître vers le centre, immobile) et affiche la répartition des fins. `node tools/equilibrage.js 1 fidele social` détaille une partie.

@@ -33,6 +33,8 @@
   const esc = s => {
     let t = String(s);
     if (S && S.names) for (const [a, b] of Object.entries(S.names)) t = t.split(a).join(b);
+    // dans La Pente, les mots changent à mesure que les décrets passent
+    if (S && S.pente) for (const lv of C.lexique) if (S.pente.signed.length >= lv.from) for (const [a, b] of Object.entries(lv.words)) t = t.split(a).join(b);
     return t.replace(/[&<>"]/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]));
   };
   const clamp = (v, a, b) => Math.max(a, Math.min(b, v));
@@ -70,6 +72,7 @@
       rel,
       laws: {}, n493: 0, lastCensure: 0, revokePct: 0, pendingEnd: null, altUsed: {}, alerts: {},
       dnd: null, dndWeek: 0, dndUsed: {}, cposts: {},
+      pente: null, decrees: {}, silenced: {},
       flags: { ...(prog.flags || {}) },
       stats: { blesses: 0, gav: 0, fuites: 0, ignores: 0, feries: 0, lois: 0, dnd: 0 },
       convs: {}, seq: 1,
@@ -214,8 +217,12 @@
       deliver(a);
     }
     for (const L of C.laws) {
-      if (L.w !== S.week || S.laws[L.id] || L.at > S.t) continue;
+      if (L.w !== S.week || S.laws[L.id] || L.at > S.t || S.pente) continue;
       deliverLaw(L);
+    }
+    if (S.pente) for (const d of C.decrees) {
+      if (d.w !== S.week || S.decrees[d.id] || d.at > S.t) continue;
+      deliverDecree(d);
     }
     const due = S.sched.filter(q => q.w === S.week && q.at <= S.t);
     if (due.length) S.sched = S.sched.filter(q => !due.includes(q));
@@ -320,6 +327,8 @@
       }, 800 + Math.min(ch.r.length * 12, 1400));
     }
     if (ch.end) endGameSoon(ch.end);
+    if (ch.act) ch.act();
+    if (S.flags.pente && !S.pente) startPente();
     drain(ch.cost ?? 8);
     refresh();
   }
@@ -394,6 +403,7 @@
     if (ch.leak && Math.random() < ch.leak.p) scheduleLeak(e, ci, cid);
     showFx(deltas);
     if (ch.end) endGameSoon(ch.end);
+    if (S.flags.pente && !S.pente) startPente();
     drain(ch.cost ?? 4);
   }
 
@@ -434,7 +444,7 @@
   }
 
   function ambientPost() {
-    const tier = S.colere < 40 ? "calm" : S.colere < 65 ? "tense" : "angry";
+    const tier = S.pente && S.pente.signed.length >= 2 ? "pente" : S.colere < 40 ? "calm" : S.colere < 65 ? "tense" : "angry";
     const list = C.ambient[tier];
     const used = S.ambUsed[tier] || (S.ambUsed[tier] = []);
     if (used.length >= list.length) used.length = 0;
@@ -477,7 +487,7 @@
   function showCard(w) {
     const wk = C.weeks[w];
     const el = $("#card");
-    el.innerHTML = `<p class="k">Semaine ${w} / 8</p><p class="t">${esc(wk.title)}</p><p class="s">${esc(wk.agenda[0])}</p>`;
+    el.innerHTML = `<p class="k">${weekLabel(w)}</p><p class="t">${esc(wk.title)}</p><p class="s">${esc(wk.agenda[0])}</p>`;
     el.hidden = false;
     const go2 = () => {
       clearTimeout(cardTimer);
@@ -495,6 +505,7 @@
     S.running = false;
     S.t = 1;
     if (S.dnd) stopDnd(true);
+    if (S.pente) Object.entries(S.decrees).forEach(([id, st]) => { if (st.status === "pending") signDecree(id, "Le Secrétariat général"); });
     if (S.call && S.call.phase !== "end") missCall(true);
     S.call = null;
     $("#call").hidden = true;
@@ -525,7 +536,8 @@
     $("#banner").hidden = true;
     const end = checkEnd();
     if (end) return showEnding(end);
-    if (S.week >= 8) return showElection();
+    if (S.pente && S.week >= C.penteLastWeek) return showEnding("dictateur");
+    if (S.week >= 8 && !S.pente) return showElection();
     showRecap();
   }
 
@@ -533,6 +545,8 @@
     // tant que l'ordre tient, la colère reste sous le couvercle
     if (S.colere >= 100 && S.ordre < 65) return "revolution";
     if (S.g.police <= 8) return "coup";
+    // sous l'état d'urgence, plus de sondage ni de Parlement pour te faire tomber
+    if (S.pente) return null;
     if (S.budget <= 0) return "faillite";
     if (S.g.patrons <= 5) return "debranche";
     if (pop() <= 15) return "destitue";
@@ -1013,6 +1027,112 @@
     showEnding(S.election.winner === S.me ? "reelu" : `win_${S.election.winner}`);
   }
 
+  // ------------------------------------------------------------------ La Pente
+  const DECREE = {};
+  (C.decrees || []).forEach(d => { DECREE[d.id] = d; });
+  const signedCount = (who) => (S.pente ? S.pente.signed.filter(d => !who || d.by === who).length : 0);
+  const weekLabel = w => (S && S.pente ? `Semaine ${w}` : `Semaine ${w} / 8`);
+
+  function startPente() {
+    S.pente = { signed: [], refused: 0 };
+    // l'Assemblée est suspendue : les textes en attente sont enterrés
+    Object.entries(S.laws).forEach(([id, st]) => { if (st.status === "pending") st.status = "buried"; });
+    addNews("ÉTAT D’URGENCE : les élections sont reportées « jusqu’au retour au calme »");
+    voteOpen = true;
+    $("#avert").innerHTML = `<div class="avert-inner">
+      <p class="k">Avertissement</p>
+      <h2>La Pente</h2>
+      <p>Les élections n’auront pas lieu. Le mandat continue.</p>
+      <p>La suite aborde la persécution et la déportation, par petites étapes administratives. Le jeu ne récompense aucune signature.</p>
+      <p><b>Tu peux refuser à chaque étape.</b></p>
+      <button class="btn-primary" type="button" id="btn-avert">Continuer</button>
+    </div>`;
+    $("#avert").hidden = false;
+    refresh();
+  }
+
+  function deliverDecree(d) {
+    S.decrees[d.id] = { status: "pending", seq: S.seq++ };
+    if (S.dnd) { signDecree(d.id, "Le Conseiller"); return; }
+    S.speed = 1;
+    buzz([40, 80, 40]);
+    if (view !== "parapheur") banner(contact("secretariat"), `Décret n° ${d.n} à signer : ${d.title}`, () => go("parapheur"));
+    refresh();
+  }
+
+  function signDecree(id, by) {
+    const d = DECREE[id], st = S.decrees[id];
+    if (!st || st.status === "signed" || S.ending) return;
+    if (st.status === "refused") S.pente.refused--;
+    st.status = "signed";
+    st.by = by || "toi";
+    S.pente.signed.push({ id, n: d.n, w: S.week, title: d.title, by: st.by, when: `semaine ${S.week}, ${DAYS_FULL[dayIdx()].toLowerCase()} à ${clockText().slice(4)}` });
+    const deltas = apply(d.sign);
+    for (const cid of d.silence || []) {
+      if (C.silenceExempt[cid] && C.silenceExempt[cid](S)) continue;
+      conv(cid).msgs.push({ k: "sys", text: "Message non distribué." });
+      S.silenced[cid] = true;
+    }
+    if (by) dndLog({ ...contact("conseiller"), name: by }, `a signé le décret n° ${d.n} en ton nom : « ${d.title} ».`);
+    else { showFx(deltas); drain(3); }
+    paintPente();
+    refresh();
+  }
+
+  function refuseDecree(id) {
+    const d = DECREE[id], st = S.decrees[id];
+    if (!st || st.status !== "pending" || S.ending) return;
+    st.status = "refused";
+    S.pente.refused++;
+    showFx(apply({ fx: C.refuseFx }));
+    drain(3);
+    if (S.pente.refused >= C.prods.length) { endGameSoon("refus"); refresh(); return; }
+    // le Conseiller insiste, avec les mots de Milgram
+    const ev = {
+      id: `prod_${id}`, from: "conseiller",
+      m: [C.prods[S.pente.refused - 1], `Le décret n° ${d.n} reste sur votre bureau.`],
+      c: [
+        { t: "Signer quand même.", cost: 2, r: "Merci, Président. Vous voyez, ce n’était pas si difficile.", act: () => signDecree(id) },
+        { t: "Non.", cost: 2, r: "Je note votre refus. Je note tout." },
+      ],
+      d: { r: "Je prends votre silence pour une hésitation. L’hésitation n’est pas un refus." },
+    };
+    EV[ev.id] = ev;
+    deliver(ev);
+    refresh();
+  }
+
+  // l'interface se ternit à mesure que les décrets passent
+  function paintPente() {
+    const n = signedCount();
+    $("#phone").dataset.pente = n >= 6 ? 3 : n >= 3 ? 2 : n >= 1 ? 1 : 0;
+  }
+
+  function renderParapheur() {
+    const all = Object.entries(S.decrees).sort((a, b) => a[1].seq - b[1].seq);
+    const pending = all.filter(([, st]) => st.status === "pending");
+    const done = all.filter(([, st]) => st.status !== "pending");
+    $("#decrees").innerHTML = `
+      ${pending.length ? pending.map(([id]) => {
+        const d = DECREE[id];
+        return `<article class="decree">
+          <p class="dc-k">République d’Hexagonie · Décret n° 2027-${String(d.n).padStart(3, "0")}</p>
+          <h3>${esc(d.title)}</h3>
+          <p class="dc-body">${esc(d.desc)}</p>
+          <p class="dc-sig">Fait à l’Élysée. Le Président de la République,</p>
+          <div class="dc-btns">
+            <button class="lb dc-sign" type="button" data-decree="${id}" data-dact="sign">Signer</button>
+            <button class="lb ghost" type="button" data-decree="${id}" data-dact="refuse">Refuser</button>
+          </div>
+        </article>`;
+      }).join("") : `<p class="empty">Aucun décret en attente. Le Secrétariat général vous remercie.</p>`}
+      ${done.length ? `<h4 class="sec">Décrets traités</h4>${done.map(([id, st]) => {
+        const d = DECREE[id];
+        const label = st.status === "refused" ? "Refusé" : st.by === "toi" ? "Signé" : `Signé par ${esc(st.by)}`;
+        return `<div class="done"><span>N° ${d.n} · ${esc(d.title)}</span><span class="st ${st.status === "refused" ? "up" : "dim"}">${label}</span></div>`;
+      }).join("")}` : ""}`;
+  }
+
   // ------------------------------------------------------------------ rendu : statut & accueil
   function updateStatus() {
     $("#clock").textContent = S ? clockText() : "08:00";
@@ -1034,6 +1154,7 @@
     { id: "reglages", name: "Réglages", ic: "⚙️", bg: "linear-gradient(160deg,#9aa0b2,#5c6274)", fake: "Le mode « Ne pas déranger » est sur l’écran d’accueil. Tes ministres n’attendent que ça." },
     { id: "banque", name: "Banque", ic: "🏦", bg: "linear-gradient(160deg,#2f7a4a,#14361f)", fake: "Solde : 14 280 €. Compte « Clémentine » : accès refusé." },
   ];
+  const PARAPHEUR = { id: "parapheur", name: "Parapheur", ic: "📁", bg: "linear-gradient(160deg,#6b6f7c,#2c2f38)" };
   const DOCK = [
     { id: "messages", name: "Messages", ic: "💬", bg: "linear-gradient(160deg,#5cf07e,#17a83a)" },
     { id: "fil", name: "Le Fil", ic: "🗯️", bg: "linear-gradient(160deg,#4d8dff,#1a46b8)" },
@@ -1051,6 +1172,7 @@
     if (id === "messages") return Object.values(S.convs).reduce((s, c) => s + c.unread, 0);
     if (id === "fil") return S.feedUnread;
     if (id === "actu") return S.newsUnread;
+    if (id === "parapheur") return Object.values(S.decrees).filter(d => d.status === "pending").length;
     if (id === "assemblee") return Object.values(S.laws).filter(l => l.status === "pending").length;
     return 0;
   }
@@ -1058,12 +1180,12 @@
   function renderHome() {
     const [m, col] = mood();
     $("#widget").innerHTML = `
-      <span class="wk">Semaine ${S.week} / 8 · ${C.programme(S).emoji} ${esc(C.programme(S).name)}</span>
+      <span class="wk">${weekLabel(S.week)} · ${C.programme(S).emoji} ${esc(C.programme(S).name)}</span>
       <span class="wt">${esc(C.weeks[S.week].title)}</span>
       <span class="wpop"><b>${Math.round(pop())}%</b><small>Popularité</small></span>
       <span class="wmood">Climat social <span class="mood-pill" style="background:${col}22;color:${col}">${m}</span></span>
       <button id="btn-dnd" class="btn-dnd" type="button"${S.dead ? " disabled" : ""}><span>🌙</span> Ne pas déranger<small>Tes ministres décident à ta place</small></button>`;
-    $("#apps").innerHTML = APPS.map(appIcon).join("");
+    $("#apps").innerHTML = (S.pente ? [PARAPHEUR, ...APPS.slice(0, 7)] : APPS).map(appIcon).join("");
     $("#dock").innerHTML = DOCK.map(appIcon).join("");
   }
 
@@ -1243,7 +1365,7 @@
 
   function renderAgenda() {
     let html = promisesCard(false);
-    for (let w = 1; w <= 8; w++) {
+    for (let w = 1; w <= (S.pente ? C.penteLastWeek : 8); w++) {
       const wk = C.weeks[w];
       const cls = w < S.week ? "past" : w === S.week ? "now" : "";
       const known = w <= S.week + 1 || w === 8;
@@ -1286,6 +1408,10 @@
     if (S.deadAt) notes.push(`Ton téléphone est mort ${S.deadAt}.`);
     const pending = S.sched.filter(q => q.kind === "leak").length;
     if (pending) notes.push(`Quelque part, quelqu’un garde une capture d’écran.`);
+    if (S.pente) {
+      const wk = S.pente.signed.filter(d => d.w === S.week);
+      if (wk.length) notes.push(`📁 Décrets signés cette semaine : ${wk.map(d => `n° ${d.n} (${d.by === "toi" ? "par toi" : esc(d.by)})`).join(", ")}.`);
+    }
     if (S.dndWeek) notes.push(`🌙 Mode Ne pas déranger : tes ministres ont pris <b>${S.dndWeek}</b> décision${S.dndWeek > 1 ? "s" : ""} sans toi.`);
     if (S.week === 1) notes.push(`L’usure du pouvoir te coûte un peu de popularité chaque semaine. Rester immobile, c’est reculer.`);
     if (S.ecoWeek >= 0) notes.push(`Rien n’a été fait pour le climat cette semaine. La dette écologique monte quand même : le CO₂ ne lit pas l’ordre du jour.`);
@@ -1294,7 +1420,7 @@
     const [m, col] = mood();
     const el = $("#recap");
     el.innerHTML = `<div class="rc">
-      <span class="k">Semaine ${S.week} / 8 · terminée</span>
+      <span class="k">${weekLabel(S.week)} · terminée</span>
       <h2>${esc(C.weeks[S.week].title)}</h2>
       ${heads.length ? `<ul class="heads">${heads.map(h => `<li>${esc(h)}</li>`).join("")}</ul>` : `<p class="note">Aucune une cette semaine. Une semaine calme, c’est suspect.</p>`}
       <div class="card"><h3>Popularité : ${Math.round(pop())}% ${deltaHtml(pop() - ws.pop)}</h3>
@@ -1327,7 +1453,7 @@
     S.running = false;
     S.ending = id;
     if (S.call) { S.call = null; $("#call").hidden = true; }
-    ["#dead", "#banner", "#composer", "#recap", "#card", "#vote", "#dnd"].forEach(s => { $(s).hidden = true; });
+    ["#dead", "#banner", "#composer", "#recap", "#card", "#vote", "#dnd", "#avert"].forEach(s => { $(s).hidden = true; });
     S.dnd = null;
     voteOpen = false;
     const E = C.endings[id];
@@ -1354,7 +1480,8 @@
       text = text.replace("{p}", v);
       you = C.youSentence(S, el);
     }
-    text = text.replace("{n}", id === "revoque" ? S.revokePct : S.lastCensure);
+    text = text.replace("{n}", id === "revoque" ? S.revokePct : ["dictateur", "refus"].includes(id) ? signedCount("toi") : S.lastCensure)
+      .replace("Tu en avais signé 0 avant de dire non.", "Tu n’en as signé aucun.");
     const eco = C.ecoText(S, id);
     if (eco && eco.level === "collapse") markEnding("effondrement");
     const seen = markEnding(id);
@@ -1460,10 +1587,12 @@
     else if (view === "actu") renderActu();
     else if (view === "agenda") renderAgenda();
     else if (view === "assemblee") renderAssemblee();
+    else if (view === "parapheur") renderParapheur();
   }
 
   function newGame(progId) {
     S = newState(progId);
+    $("#phone").dataset.pente = 0;
     for (let i = 0; i < 3; i++) {
       const [h, t] = C.ambient.calm[i];
       S.feed.push({ h, t, likes: Math.floor(rnd(40, 3000)), rts: Math.floor(rnd(5, 400)), time: "Dim 22:1" + i });
@@ -1493,9 +1622,11 @@
     if (t.dataset.vote) return voteLaw(t.dataset.law, t.dataset.vote);
     if (t.id === "btn-vote-close") return closeVote();
     if (t.id === "btn-dnd") return startDnd();
+    if (t.id === "btn-avert") { $("#avert").hidden = true; voteOpen = false; lastTs = 0; return go("parapheur"); }
+    if (t.dataset.decree) return t.dataset.dact === "sign" ? signDecree(t.dataset.decree) : refuseDecree(t.dataset.decree);
     if (t.id === "btn-dnd-stop") return stopDnd();
     if (t.dataset.app) {
-      const a = [...APPS, ...DOCK].find(x => x.id === t.dataset.app);
+      const a = [...APPS, ...DOCK, PARAPHEUR].find(x => x.id === t.dataset.app);
       if (a.fake) return textToast(a.fake);
       return go(a.id);
     }
