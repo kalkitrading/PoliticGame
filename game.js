@@ -142,7 +142,11 @@
     // image d'un candidat à l'élection ; « me » désigne ton propre groupe
     if (o.image) for (const [g, v] of Object.entries(val(o.image))) { const id = g === "me" ? S.me : g; S.image[id] = (S.image[id] || 0) + v; }
     if (o.set) Object.assign(S.flags, o.set);
-    if (o.news) addNews(o.news);
+    if (o.news) {
+      addNews(o.news);
+      // chaque titre est aussi relayé sur Le Fil, avec le bandeau rouge
+      schedulePost("@InfoChoc24", `🔴 ${o.news}`, rnd(0.006, 0.02));
+    }
     if (o.posts) o.posts.forEach((p, i) => schedulePost(p[0], p[1], 0.015 + i * 0.02));
     return d;
   }
@@ -251,7 +255,7 @@
       }
     }
     if (S.t >= S.nextAmb) {
-      S.nextAmb += rnd(0.08, 0.14);
+      S.nextAmb += rnd(0.06, 0.1);
       ambientPost();
     }
   }
@@ -459,6 +463,20 @@
 
   function ambientPost() {
     const tier = S.pente && S.pente.signed.length >= 2 ? "pente" : S.colere < 40 ? "calm" : S.colere < 65 ? "tense" : "angry";
+    // Le Fil réagit à tes choix, aux lois, aux chiffres et à la fenêtre d'Overton (content-fil.js) ;
+    // les réactions « hot » passent en priorité, chaque publication ne sort qu'une fois
+    if (tier !== "pente" && C.fil) {
+      const used = S.filUsed || (S.filUsed = {});
+      const ok = p => !used[p.id] && (!p.when || p.when(S));
+      const hot = C.fil.filter(p => p.hot && ok(p));
+      const pool = hot.length && Math.random() < 0.7 ? hot : Math.random() < 0.65 ? C.fil.filter(p => !p.hot && ok(p)) : [];
+      if (pool.length) {
+        const p = pick(pool);
+        used[p.id] = true;
+        addPost({ h: p.h, t: p.t });
+        return;
+      }
+    }
     const list = (C.ambientBy && C.ambientBy[S.programme] && C.ambientBy[S.programme][tier]) || C.ambient[tier];
     const used = S.ambUsed[tier] || (S.ambUsed[tier] = []);
     if (used.length >= list.length) used.length = 0;
