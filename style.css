@@ -70,6 +70,8 @@ button:focus-visible { outline: 2px solid var(--gold); outline-offset: 2px; }
 /* le temps ralentit pendant la lecture */
 #clock.slow::after { content: " 📖"; font-size: 0.8em; }
 #clock.auto::after { content: " ⏩"; font-size: 0.8em; opacity: .7; }
+#clock.pause::after { content: " ⏸"; font-size: 0.8em; opacity: .7; }
+.reply.letgo { opacity: .7; border-style: dashed; }
 #ff { display: grid; place-items: center; opacity: .5; padding: 4px 6px; border-radius: 8px; }
 #ff[hidden] { display: none !important; }
 #ff.on { opacity: 1; color: var(--amber); background: var(--surface-2); }

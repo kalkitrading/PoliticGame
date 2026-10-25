@@ -11,7 +11,7 @@ Aucune installation, aucun build.
 
 ## Mécaniques
 
-- **Le temps** : le mandat dure 6 semaines (une partie complète prend 20 à 30 minutes). Le temps ralentit fortement (📖) dès que tu es dans une appli pour lire (messages, Le Fil, actus, Assemblée…), file tout seul (⏩) sur l'écran d'accueil quand rien n'attend de réponse, et chaque semaine fusionnée a son rebondissement en plein milieu (⚡), avec une batterie rechargée. Le bouton ⏩ accélère.
+- **Le temps, jour par jour** : le mandat dure 6 semaines. Le temps s'arrête (⏸) tant qu'un message, un appel ou un décret attend ta réponse : tu lis à ton rythme. Quand tout est traité, il file (⏩) jusqu'au prochain message, et chaque jour s'annonce (☀️). Tu peux toujours choisir de te taire : « 🙈 Laisser sans réponse » sur un message, ou ⏭ pour laisser filer tout ce qui attend (tes ministres tranchent). Les appels gardent leur sonnerie chronométrée. Au milieu des semaines fusionnées, un rebondissement (⚡) recharge la batterie.
 - **Batterie** : chaque réponse coûte de l'énergie. À 0 %, le téléphone s'éteint et tes ministres décident à ta place.
 - **Silence** : un message ignoré déclenche la décision par défaut, souvent la pire.
 - **Fuites** 🔓 : les réponses cyniques peuvent ressortir dans la presse quelques jours plus tard.

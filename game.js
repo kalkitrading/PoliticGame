@@ -5,8 +5,7 @@
   const C = window.CONTENT;
   const WEEK_MS = 300000;          // durée réelle d'une semaine à vitesse normale (5 min)
   const FAST = 7;                   // multiplicateur en accéléré
-  const READING = 0.12;             // le temps ralentit beaucoup quand tu lis (dans une appli)
-  const IDLE = 5;                   // et file tout seul sur l'accueil quand rien n'attend de réponse
+  const SKIP = 30;                  // jour par jour : le temps file jusqu'au prochain message, puis s'arrête
   const CALL_RING_MS = 15000;       // temps pour décrocher
   const CALL_TALK_MS = 32000;       // temps pour répondre pendant l'appel
   const PASSIVE_DRAIN = 14;         // % de batterie perdus par semaine sans rien faire
@@ -185,10 +184,16 @@
         if (rt && S.call.phase === "ring") rt.textContent = `Appel entrant… ${Math.ceil(S.call.left / 1000)} s`;
         if (S.call.left <= 0) missCall();
       }
-      // lire passe avant tout : dans une appli, le temps ralentit, même si rien n'attend de réponse
-      const speed = S.call ? 1 : S.speed > 1 ? S.speed : reading() ? READING : idle() ? IDLE : 1;
+      // jour par jour : tant qu'un message attend ta réponse, le temps est arrêté ; sinon il file jusqu'au suivant.
+      // Téléphone éteint ou mode Ne pas déranger : tes ministres gèrent, et le temps file.
+      const speed = S.call ? 0 : S.dnd || S.dead || idle() ? SKIP : 0;
       const dw = dt * speed / WEEK_MS;
       S.t += dw;
+      const day = dayIdx();
+      if (day !== S.dayShown) {
+        S.dayShown = day;
+        if (day > 0 && !S.dnd && !S.dead && !S.ending) textToast(`☀️ ${DAYS_FULL[day]}`);
+      }
       if (S.dnd) S.battery = Math.min(100, S.battery + dw * DND_RECHARGE);
       else drain(dw * PASSIVE_DRAIN);
       spawn();
@@ -291,6 +296,11 @@
     cv.unread += msgs.length;
     cv.last = S.seq++;
     cv.lastText = msgs[msgs.length - 1];
+    if (S.dead) {
+      ignore(cid, "📵 Téléphone éteint : tes ministres ont géré");
+      refresh();
+      return;
+    }
     if (S.dnd) {
       ignore(cid, "🌙 Ne pas déranger : tes ministres ont géré");
       const d = e.d || {};
@@ -519,7 +529,7 @@
   // ------------------------------------------------------------------ semaines
   function startWeek(w) {
     S.week = w; S.t = 0; S.battery = 100; S.dead = false; S.deadAt = null; S.lowWarned = false;
-    S.speed = 1; S.posted = false; S.ignoredWeek = 0; S.leaksWeek = 0; S.nextAmb = rnd(0.03, 0.07); S.dndWeek = 0;
+    S.speed = 1; S.dayShown = 0; S.posted = false; S.ignoredWeek = 0; S.leaksWeek = 0; S.nextAmb = rnd(0.03, 0.07); S.dndWeek = 0;
     S.weekStart = { g: { ...S.g }, ordre: S.ordre, budget: S.budget, eco: S.eco, pop: pop() };
     $("#dead").hidden = true;
     if (w >= 2) {
@@ -541,7 +551,7 @@
       go("home");
       S.running = true;
       lastTs = 0;
-      if (w === 1) textToast("📖 Le temps ralentit quand tu lis. ⏩ Il file sur l’accueil quand rien ne t’attend.");
+      if (w === 1) textToast("⏸ Le temps s’arrête tant qu’un message t’attend. ⏭ pour laisser filer.");
     };
     el.onclick = go2;
     cardTimer = setTimeout(go2, 2600);
@@ -1181,25 +1191,32 @@
   }
 
   // ------------------------------------------------------------------ rendu : statut & accueil
-  // dans une appli (messages, Fil, Assemblée…), le temps ralentit pour laisser lire
-  const reading = () => !!S && !S.dnd && !["home", "lock", "title", "programme"].includes(view);
-  // rien n'attend de réponse : ni message, ni appel, ni texte à voter, ni décret à signer
+  // rien n'attend de réponse : ni message, ni appel, ni décret à signer (les textes de loi, eux, peuvent attendre)
   const idle = () => !!S && !S.dnd && !S.call
     && !Object.values(S.convs).some(cv => cv.pending)
-    && !Object.values(S.laws).some(st => st.status === "pending")
     && !Object.values(S.decrees || {}).some(st => st.status === "pending");
+
+  // « Laisser filer » : tout ce qui attend part avec la décision par défaut
+  function letGo() {
+    if (!S || !S.running || S.dead || S.ending) return;
+    let n = 0;
+    if (S.call && S.call.phase === "ring") { missCall(true); n++; }
+    Object.keys(S.convs).forEach(cid => { if (S.convs[cid].pending) { ignore(cid, "🙈 Laissé sans réponse"); n++; } });
+    if (S.pente) Object.entries(S.decrees).forEach(([id, st]) => { if (st.status === "pending") { signDecree(id, "Le Secrétariat général"); n++; } });
+    textToast(n ? `🙈 Tu as laissé filer. ${n > 1 ? "Tes ministres ont tranché." : "Ton silence a tranché."}` : "Rien n’attend de réponse. Le temps file déjà.");
+    refresh();
+  }
 
   function updateStatus() {
     $("#clock").textContent = S ? clockText() : "08:00";
-    const slow = !!S && S.running && S.speed <= 1 && !S.call && reading();
-    const auto = !!S && S.running && S.speed <= 1 && !S.call && !slow && idle();
-    $("#clock").classList.toggle("slow", slow);
+    const auto = !!S && S.running && !S.call && (S.dnd || S.dead || idle());
     $("#clock").classList.toggle("auto", auto);
+    $("#clock").classList.toggle("pause", !!S && S.running && !auto && !S.call);
     const b = S ? Math.ceil(S.battery) : 100;
     $("#batt-pct").textContent = `${b}%`;
     $("#batt-fill").style.width = `${b}%`;
     $("#batt").classList.toggle("low", b <= 20);
-    $("#ff").classList.toggle("on", !!S && S.speed > 1);
+    $("#ff").classList.toggle("on", !!S && S.running && !auto && !S.dead);
     $("#ff").hidden = !S || !S.running;
   }
 
@@ -1294,7 +1311,7 @@
         <span>${esc(ch.t)}</span>
         <span class="meta">${ch.leak ? `<span class="lk" title="Risque de fuite">🔓</span>` : ""}🔋${ch.cost ?? 8}</span>
       </button>`;
-    }).join("");
+    }).join("") + `<button class="reply letgo" type="button" data-letgo ${S.dead ? "disabled" : ""}><span>🙈 Laisser sans réponse</span><span class="meta">🔋0</span></button>`;
   }
 
   // ------------------------------------------------------------------ rendu : le fil
@@ -1778,7 +1795,8 @@
     if (t.id === "btn-election") return closeElection();
     if (t.id === "btn-unlock") return startWeek(1);
     if (t.id === "homebar") { if (S && !["title", "lock"].includes(view)) go("home"); return; }
-    if (t.id === "ff") { if (S && S.running && !S.call && !S.dead) { S.speed = S.speed > 1 ? 1 : FAST; updateStatus(); } return; }
+    if (t.id === "ff") { letGo(); return; }
+    if (t.dataset.letgo !== undefined) { if (S && threadId && S.convs[threadId] && S.convs[threadId].pending && !S.dead) { ignore(threadId, "🙈 Laissé sans réponse"); refresh(); } return; }
     if (t.id === "btn-post") return openComposer();
     if (t.dataset.go) return go(t.dataset.go);
     if (t.dataset.thread) return openThread(t.dataset.thread);
