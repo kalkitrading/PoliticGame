@@ -11,6 +11,7 @@ require(__dirname + '/../content-coupsbas.js');
 require(__dirname + '/../content-pente.js');
 require(__dirname + '/../content-gauche.js');
 require(__dirname + '/../content-verts.js');
+require(__dirname + '/../content-droite.js');
 const C = window.CONTENT;
 
 const G = ["jeunes", "ouvriers", "retraites", "patrons", "police"];
@@ -376,7 +377,7 @@ const STRATS = {
 const AGENDA = {
   social: { dir: -1, fav: ["l_smic", "l_regul", "l_jets", "l_renov", "l_climat_urgence", "l_budget", "l_kerosene"], anti: ["l_retraite", "l_heritage", "l_preference", "l_permis", "l_mur", "l_immigration"] },
   climat: { dir: -1, fav: ["l_jets", "l_renov", "l_kerosene", "l_climat_urgence", "l_budget", "l_climat_raisonnable"], anti: ["l_mur", "l_heritage", "l_preference", "l_permis"] },
-  liberal: { dir: 1, fav: ["l_retraite", "l_heritage", "l_budget", "l_immigration", "l_climat_raisonnable"], anti: ["l_smic", "l_kerosene", "l_regul", "l_jets", "l_preference", "l_mur"] },
+  liberal: { dir: 0.6, fav: ["l_retraite", "l_heritage", "l_budget", "l_immigration", "l_climat_raisonnable"], anti: ["l_smic", "l_kerosene", "l_regul", "l_jets", "l_preference", "l_mur"] },
   ordre: { dir: 1, fav: ["l_preference", "l_mur", "l_permis", "l_immigration", "l_budget", "l_renov"], anti: ["l_regul", "l_smic", "l_jets", "l_kerosene", "l_revocation"] },
   centre: { dir: 0, fav: ["l_budget", "l_retraite", "l_climat_raisonnable", "l_feries", "l_renov", "l_jets"], anti: ["l_preference", "l_mur", "l_permis", "l_revocation", "l_heritage"] },
 };

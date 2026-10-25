@@ -54,7 +54,7 @@
       ] },
     { id: "liberal", group: "DP", emoji: "💼", name: "Libérer les énergies",
       pitch: "Moins d’impôts, des retraites réformées, des marchés rassurés. Tu diriges la Droite Patrimoniale.",
-      overton: 8, incumbency: 4,
+      overton: 8, incumbency: 6,
       start: { g: { jeunes: -3, ouvriers: -3, retraites: 6, patrons: 15, police: 3 }, rel: { HI: 10, VP: 25, PP: 30, CA: 60, DIV: 50, RH: 35 } },
       promises: [
         { text: "Réformer les retraites", heir: "CA", state: S => (passed(S, "l_retraite") ? "ok" : gone(S, "l_retraite") ? "broken" : "pending") },
