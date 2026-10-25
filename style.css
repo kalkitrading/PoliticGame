@@ -69,6 +69,7 @@ button:focus-visible { outline: 2px solid var(--gold); outline-offset: 2px; }
 .sb-right { justify-self: end; display: flex; align-items: center; gap: 10px; }
 /* le temps ralentit pendant la lecture */
 #clock.slow::after { content: " 📖"; font-size: 0.8em; }
+#clock.auto::after { content: " ⏩"; font-size: 0.8em; opacity: .7; }
 #ff { display: grid; place-items: center; opacity: .5; padding: 4px 6px; border-radius: 8px; }
 #ff[hidden] { display: none !important; }
 #ff.on { opacity: 1; color: var(--amber); background: var(--surface-2); }

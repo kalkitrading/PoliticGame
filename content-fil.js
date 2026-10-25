@@ -236,9 +236,9 @@
     ["@MEDEX_Patronat", "Le patronat est en état d’alerte. Nous avons annulé deux cocktails. C’est dire.", S => S.g.patrons < 25],
     ["@InfoChoc24", "🔴 « Chaos » : notre bandeau est resté affiché toute la semaine. On a oublié de l’enlever. Il était juste.", S => S.ordre < 35],
     ["@Fact_Hex", "Le Président a fait l’objet de 14 vérifications cette semaine. Record. Nous avons dû embaucher.", S => (S.image && S.image[S.me] || 0) <= -3, H],
-    ["@InfoChoc24", "🔴 J-7 : les candidats promettent tout. Et le contraire aussi, pour être sûrs.", W(7)],
-    ["@MiloDu93", "j’irai voter. ou pas. ça dépend s’il pleut. c’est ça la démocratie", W(7)],
-    ["@Mamie_Ginette", "J’ai mis mon manteau du dimanche pour aller voter. Je vote le dimanche, j’ai 84 ans, je vote toujours.", W(8)],
+    ["@InfoChoc24", "🔴 J-7 : les candidats promettent tout. Et le contraire aussi, pour être sûrs.", W(6)],
+    ["@MiloDu93", "j’irai voter. ou pas. ça dépend s’il pleut. c’est ça la démocratie", W(6)],
+    ["@Mamie_Ginette", "J’ai mis mon manteau du dimanche pour aller voter. Je vote le dimanche, j’ai 84 ans, je vote toujours.", W(6)],
 
     // ================================================================ PLUS DE FENÊTRE D'OVERTON
     ["@Prof_Hist_Hex", "En cours, un élève m’a demandé si « l’impôt sur la fortune » était une maladie. Je lui ai dit que oui, pour certains.", O(-100, -25)],
@@ -261,11 +261,11 @@
     ["@EntrepreneurDuDim", "Pénurie de carburant : j’ai dû prendre l’hélicoptère pour aller au golf. Personne ne parle de nous.", WK(3)],
     ["@Meteo_Hex", "Cumul de pluie : trois mois en deux jours. Le ministère parle d’un « épisode ». L’épisode a une saison 2.", WK(4)],
     ["@Mamie_Ginette", "Ma sœur Monique est sur son toit avec son chat. Elle dit que la vue est jolie, au moins.", WK(4)],
-    ["@LEcho_Hex", "Demain, une révélation. L’Élysée est au courant. L’Élysée n’a pas répondu. L’Élysée ne répond jamais avant.", WK(5)],
-    ["@InfoChoc24", "🔴 Point de bascule ? Nos experts répondent : peut-être. Nos autres experts : peut-être pas.", WK(6)],
-    ["@Lea_Sciences_Po", "J-14 avant l’élection. Thread 🧵 : tout ce qu’on a oublié depuis le début du mandat. (1/240)", WK(6)],
-    ["@Kevontop", "les candidats me demandent tous une vidéo. j’ai fait un tableau Excel. c’est la première fois que j’utilise Excel", WK(7)],
-    ["@InfoChoc24", "🔴 Jour de vote : les bureaux ouvrent à 8 h. Les éditorialistes ont déjà fini leurs analyses.", WK(8)],
+    ["@LEcho_Hex", "Demain, une révélation. L’Élysée est au courant. L’Élysée n’a pas répondu. L’Élysée ne répond jamais avant.", WK(4)],
+    ["@InfoChoc24", "🔴 Point de bascule ? Nos experts répondent : peut-être. Nos autres experts : peut-être pas.", WK(5)],
+    ["@Lea_Sciences_Po", "J-14 avant l’élection. Thread 🧵 : tout ce qu’on a oublié depuis le début du mandat. (1/240)", WK(5)],
+    ["@Kevontop", "les candidats me demandent tous une vidéo. j’ai fait un tableau Excel. c’est la première fois que j’utilise Excel", WK(6)],
+    ["@InfoChoc24", "🔴 Jour de vote : les bureaux ouvrent à 8 h. Les éditorialistes ont déjà fini leurs analyses.", WK(6)],
 
     // ================================================================ LA VIE QUI CONTINUE, SELON LE CLIMAT SOCIAL
     ["@Kevontop", "nouvelle vidéo : je goûte les plats des cantines des ministères. spoiler : c’est meilleur que chez nous", S => S.colere < 40],

@@ -45,7 +45,7 @@
       } },
       { name: "Aminata Diallo", av: "🩺", col: "#2f7a6a", text: S => {
         if (S.flags.aminataPartie) return "Entendue en visioconférence depuis Montréal. « Il m’a dit de partir. Trente ans de nuits ici. Je les ai laissées, mes patients aussi. Je ne sais pas si je dois lui dire merci. »";
-        if (signed(S, "d6")) return "La témoin, convoquée en semaine 10 « pour vérification de sa mention d’origine », n’a jamais été retrouvée. Son service de nuit a fermé faute de personnel.";
+        if (signed(S, "d6")) return "La témoin, convoquée « pour vérification de sa mention d’origine », n’a jamais été retrouvée. Son service de nuit a fermé faute de personnel.";
         return null;
       } },
       { name: "Lucas Morel", av: "🧑‍🎓", col: "#3d6b8f", text: S => {

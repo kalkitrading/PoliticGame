@@ -14,6 +14,9 @@ require(__dirname + '/../content-verts.js');
 require(__dirname + '/../content-droite.js');
 require(__dirname + '/../content-rh.js');
 require(__dirname + '/../content-centre.js');
+require(__dirname + '/../content-fil.js');
+require(__dirname + '/../content-proces.js');
+require(__dirname + '/../content-rythme.js');
 const C = window.CONTENT;
 
 const G = ["jeunes", "ouvriers", "retraites", "patrons", "police"];
@@ -142,7 +145,7 @@ function game(strat, progId = "centre") {
       shift(ovOf(e, ci));
       if (pick.leak && Math.random() < pick.leak.p) {
         const L = pick.leak;
-        if (L.soon || S.week >= 8) queue.push({ w: S.week, at: S.t + rnd(0.05, 0.12), fn: () => { S.stats.fuites++; apply({ fx: L.fx, rel: L.rel, image: L.image }); } });
+        if (L.soon || S.week >= (C.lastWeek || 8)) queue.push({ w: S.week, at: S.t + rnd(0.05, 0.12), fn: () => { S.stats.fuites++; apply({ fx: L.fx, rel: L.rel, image: L.image }); } });
         else queue.push({ w: S.week + 1, at: rnd(0.1, 0.6), fn: () => { S.stats.fuites++; apply({ fx: L.fx, rel: L.rel, image: L.image }); } });
       }
       if (pick.end) end(pick.end);
@@ -191,7 +194,8 @@ function game(strat, progId = "centre") {
     S.log.push(`S${S.week} ${L.id}: ${act} → ${adopted ? "adoptée" : "rejetée"} ${r.pour}-${r.contre}`);
   }
 
-  for (let w = 1; w <= 8 && !S.ending; w++) {
+  const LAST = C.lastWeek || 8, sc = C.weekScale || 1;
+  for (let w = 1; w <= LAST && !S.ending; w++) {
     S.week = w; S.t = 0; S.spent = 0; S.dead = false;
     const items = [];
     C.events.filter(e => e.w === w).forEach(e => items.push({ at: e.at, fn: () => runEvent(e) }));
@@ -214,6 +218,9 @@ function game(strat, progId = "centre") {
     // publication hebdo
     const post = strat.post && strat.post(S, ((C.postsBy && C.postsBy[S.programme]) || {})[w] || C.posts[w]);
     if (post) items.push({ at: 0.5, fn: () => { if (!S.dead) { spend(6); apply({ fx: post.fx }); } } });
+    // semaine fusionnée : une nuit de sommeil au milieu recharge la batterie
+    const wk = C.weeks[w];
+    if (wk && wk.mid) items.push({ at: wk.midAt, fn: () => { S.spent = -14 * wk.midAt; S.dead = false; } });
     items.sort((a, b) => a.at - b.at);
     for (let i = 0; i < items.length && !S.ending; i++) {
       const it = items[i];
@@ -234,15 +241,15 @@ function game(strat, progId = "centre") {
     queue.filter(q => q.w === w && q.at >= 1).forEach(q => { q.w = w + 1; q.at = rnd(0.01, 0.3); });
     const avg = (S.g.jeunes + S.g.ouvriers) / 2;
     S.colere = cl(S.colere + cl(Math.round((40 - avg) * 0.15), -3, 5) - 3, 0, 100);
-    shift(C.overtonMap.weekly);
+    shift(Math.round(C.overtonMap.weekly * sc));
     if (S.colere >= 90) S.ordre -= 6;
     S.ordre = cl(Math.round(S.ordre + (50 - S.ordre) * 0.1), 0, 100);
-    S.budget = cl(S.budget - 1, 0, 100);
+    S.budget = cl(S.budget - sc, 0, 100);
     S.g.patrons = cl(Math.round(S.g.patrons + (45 - S.g.patrons) * 0.15), 0, 100);
     S.g.police = cl(Math.round(S.g.police + (45 - S.g.police) * 0.12), 0, 100);
     const UP = +(process.env.UP || 2);
-    ["jeunes", "ouvriers", "retraites"].forEach(k => { S.g[k] = cl(S.g[k] - UP, 0, 100); });
-    S.eco = cl(S.eco + ECO_DRIFT, 0, 100);
+    ["jeunes", "ouvriers", "retraites"].forEach(k => { S.g[k] = cl(S.g[k] - UP * sc, 0, 100); });
+    S.eco = cl(S.eco + ECO_DRIFT * sc, 0, 100);
     const e = checkEnd(); if (e) end(e);
     if (process.env.TRACE) console.log(`  fin S${w} pop=${pop().toFixed(0)} colère=${S.colere} ordre=${S.ordre} caisses=${S.budget} éco=${S.eco} 49.3=${S.n493} rel=${JSON.stringify(S.rel)}`);
   }

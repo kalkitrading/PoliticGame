@@ -3,9 +3,10 @@
   "use strict";
 
   const C = window.CONTENT;
-  const WEEK_MS = 360000;          // durée réelle d'une semaine à vitesse normale (6 min)
+  const WEEK_MS = 300000;          // durée réelle d'une semaine à vitesse normale (5 min)
   const FAST = 7;                   // multiplicateur en accéléré
-  const READING = 0.3;              // le temps ralentit quand tu lis (dans une appli)
+  const READING = 0.4;              // le temps ralentit quand tu lis (dans une appli)
+  const IDLE = 5;                   // et file tout seul quand rien n'attend de réponse
   const CALL_RING_MS = 15000;       // temps pour décrocher
   const CALL_TALK_MS = 32000;       // temps pour répondre pendant l'appel
   const PASSIVE_DRAIN = 14;         // % de batterie perdus par semaine sans rien faire
@@ -184,7 +185,7 @@
         if (rt && S.call.phase === "ring") rt.textContent = `Appel entrant… ${Math.ceil(S.call.left / 1000)} s`;
         if (S.call.left <= 0) missCall();
       }
-      const speed = S.call ? 1 : S.speed > 1 ? S.speed : reading() ? READING : 1;
+      const speed = S.call ? 1 : S.speed > 1 ? S.speed : idle() ? IDLE : reading() ? READING : 1;
       const dw = dt * speed / WEEK_MS;
       S.t += dw;
       if (S.dnd) S.battery = Math.min(100, S.battery + dw * DND_RECHARGE);
@@ -254,6 +255,16 @@
         const e = EV[q.id];
         if (!e.when || e.when(S)) deliver(e); else S.poolUsed[q.id] = false;
       }
+    }
+    // semaine fusionnée : le second titre tombe en plein milieu, comme un rebondissement
+    const wi = weekInfo(S.week);
+    if (wi.mid && S.t >= wi.midAt && S.midSeen !== S.week) {
+      S.midSeen = S.week;
+      // une nuit de sommeil au milieu : la batterie repart à 100 %
+      S.battery = 100; S.lowWarned = false;
+      if (S.dead) { S.dead = false; S.deadAt = null; $("#dead").hidden = true; }
+      if (!S.dnd) { buzz([60, 40, 60]); banner({ av: "⚡", col: "#b3121f", name: "Rebondissement" }, `${wi.mid} · 🔋 rechargé`, () => go("actu"), true); }
+      addNews(`⚡ ${wi.mid}`);
     }
     if (S.t >= S.nextAmb) {
       S.nextAmb += rnd(0.06, 0.1);
@@ -429,7 +440,7 @@
   // ------------------------------------------------------------------ fuites
   function scheduleLeak(e, ci, to) {
     const L = e.c[ci].leak;
-    if (L.soon || S.week >= 8) S.sched.push({ w: S.week, at: S.t + rnd(0.05, 0.12), kind: "leak", id: e.id, ci, to });
+    if (L.soon || S.week >= (C.lastWeek || 8)) S.sched.push({ w: S.week, at: S.t + rnd(0.05, 0.12), kind: "leak", id: e.id, ci, to });
     else S.sched.push({ w: S.week + 1, at: rnd(0.1, 0.6), kind: "leak", id: e.id, ci, to });
   }
 
@@ -529,7 +540,7 @@
       go("home");
       S.running = true;
       lastTs = 0;
-      if (w === 1) textToast("📖 Le temps ralentit quand tu lis. ⏩ pour accélérer.");
+      if (w === 1) textToast("⏩ Le temps file quand rien ne t’attend, 📖 ralentit quand tu lis.");
     };
     el.onclick = go2;
     cardTimer = setTimeout(go2, 2600);
@@ -547,7 +558,8 @@
     // un texte reste à l'ordre du jour deux semaines, puis il est enterré
     Object.entries(S.laws).forEach(([id, st]) => { if (st.status === "pending" && st.w < S.week) buryLaw(id); });
     S.ecoWeek = S.eco - S.weekStart.eco;
-    S.eco = clamp(S.eco + ECO_DRIFT, 0, 100);
+    const sc = C.weekScale || 1; // mandat replié en 6 semaines : dérives renforcées d'autant
+    S.eco = clamp(S.eco + ECO_DRIFT * sc, 0, 100);
     S.sched.forEach(q => {
       if (q.w === S.week) { q.w = S.week + 1; q.at = q.kind === "leak" ? rnd(0.05, 0.3) : rnd(0.01, 0.05); }
     });
@@ -555,23 +567,23 @@
     // la colère retombe si on ne l'alimente pas, sauf chez ceux qui n'en peuvent plus
     const avg = (S.g.jeunes + S.g.ouvriers) / 2;
     S.colere = clamp(S.colere + clamp(Math.round((40 - avg) * 0.15), -3, 5) - 3, 0, 100);
-    shift(C.overtonMap.weekly);
+    shift(Math.round(C.overtonMap.weekly * sc));
     // une colère maximale use les forces de l'ordre
     if (S.colere >= 90) S.ordre -= 6;
     S.ordre = clamp(Math.round(S.ordre + (50 - S.ordre) * 0.1), 0, 100);
-    S.budget = clamp(S.budget - 1, 0, 100);
+    S.budget = clamp(S.budget - sc, 0, 100);
     // les marchés ont la mémoire courte
     S.g.patrons = clamp(Math.round(S.g.patrons + (45 - S.g.patrons) * 0.15), 0, 100);
     S.g.police = clamp(Math.round(S.g.police + (45 - S.g.police) * 0.12), 0, 100);
     // l'usure du pouvoir : les citoyens se lassent un peu chaque semaine
-    ["jeunes", "ouvriers", "retraites"].forEach(k => { S.g[k] = clamp(S.g[k] - 2, 0, 100); });
+    ["jeunes", "ouvriers", "retraites"].forEach(k => { S.g[k] = clamp(S.g[k] - 2 * sc, 0, 100); });
     S.popHist.push(Math.round(pop()));
     $("#dead").hidden = true;
     $("#banner").hidden = true;
     const end = checkEnd();
     if (end) return showEnding(end);
     if (S.pente && S.week >= C.penteLastWeek) return showEnding("dictateur");
-    if (S.week >= 8 && !S.pente) return showElection();
+    if (S.week >= (C.lastWeek || 8) && !S.pente) return showElection();
     showRecap();
   }
 
@@ -1065,7 +1077,7 @@
   const DECREE = {};
   (C.decrees || []).forEach(d => { DECREE[d.id] = d; });
   const signedCount = (who) => (S.pente ? S.pente.signed.filter(d => !who || d.by === who).length : 0);
-  const weekLabel = w => (S && S.pente ? `Semaine ${w}` : `Semaine ${w} / 8`);
+  const weekLabel = w => (S && S.pente ? `Semaine ${w}` : `Semaine ${w} / ${C.lastWeek || 8}`);
 
   function startPente() {
     S.pente = { signed: [], refused: 0, w0: S.week };
@@ -1170,10 +1182,17 @@
   // ------------------------------------------------------------------ rendu : statut & accueil
   // dans une appli (messages, Fil, Assemblée…), le temps ralentit pour laisser lire
   const reading = () => !!S && !S.dnd && !["home", "lock", "title", "programme"].includes(view);
+  // rien n'attend de réponse : ni message, ni appel, ni texte à voter, ni décret à signer
+  const idle = () => !!S && !S.dnd && !S.call
+    && !Object.values(S.convs).some(cv => cv.pending)
+    && !Object.values(S.laws).some(st => st.status === "pending")
+    && !Object.values(S.decrees || {}).some(st => st.status === "pending");
 
   function updateStatus() {
     $("#clock").textContent = S ? clockText() : "08:00";
-    $("#clock").classList.toggle("slow", !!S && S.running && S.speed <= 1 && reading());
+    const auto = !!S && S.running && S.speed <= 1 && !S.call && idle();
+    $("#clock").classList.toggle("slow", !!S && S.running && S.speed <= 1 && !auto && reading());
+    $("#clock").classList.toggle("auto", auto);
     const b = S ? Math.ceil(S.battery) : 100;
     $("#batt-pct").textContent = `${b}%`;
     $("#batt-fill").style.width = `${b}%`;
@@ -1403,10 +1422,10 @@
 
   function renderAgenda() {
     let html = promisesCard(false);
-    for (let w = 1; w <= (S.pente ? C.penteLastWeek : 8); w++) {
+    for (let w = 1; w <= (S.pente ? C.penteLastWeek : (C.lastWeek || 8)); w++) {
       const wk = weekInfo(w);
       const cls = w < S.week ? "past" : w === S.week ? "now" : "";
-      const known = w <= S.week + 1 || w === 8;
+      const known = w <= S.week + 1 || w === (C.lastWeek || 8);
       html += `<div class="ag-week ${cls}"><span class="n">${w}</span><b>${known ? esc(wk.title) : "???"}</b>
         <ul>${known ? wk.agenda.map(a => `<li>${esc(a)}</li>`).join("") : "<li>Personne ne sait. Même pas vous.</li>"}</ul></div>`;
     }
