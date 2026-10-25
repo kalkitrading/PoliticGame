@@ -72,12 +72,12 @@
       { t: "Même droit de manifester pour tous. Dispositif léger.", cost: 6, r: "Des tracteurs en dispositif léger. Je décline toute responsabilité pour les pare-chocs.",
         fx: { ordre: -4, police: -4, patrons: 2, colere: -2, overton: -1 }, set: { leger: true } },
       { t: "Accordé. Pas de quartier.", cost: 6, r: "Avec plaisir. C’est la première fois qu’on me demande de gazer des notaires.",
-        fx: { ordre: 8, police: 6, patrons: -8, colere: 8, gav: 300, overton: 3 }, set: { repression: true } },
+        fx: { ordre: 8, police: 6, patrons: -8, colere: 8, gav: 300, overton: 5 }, set: { repression: true } },
       { t: "Faites ce qu’il faut.", cost: 4, r: "Je fais toujours ce qu’il faut. C’est ce qui m’inquiète chez moi.",
-        fx: { ordre: 10, police: 8, colere: 10, gav: 600, overton: 4 }, set: { carteBlanche: true },
+        fx: { ordre: 10, police: 8, colere: 10, gav: 600, overton: 6 }, set: { carteBlanche: true },
         leak: { p: 0.4, fx: { jeunes: -6, colere: 6 }, news: "Le Président de gauche au préfet : « Faites ce qu’il faut. » Le préfet a fait." } },
     ],
-    d: { r: "Pas de réponse. J’improvise. J’adore improviser.", fx: { ordre: 10, police: 8, colere: 10, gav: 600, overton: 4 }, set: { carteBlanche: true } },
+    d: { r: "Pas de réponse. J’improvise. J’adore improviser.", fx: { ordre: 10, police: 8, colere: 10, gav: 600, overton: 6 }, set: { carteBlanche: true } },
   });
 
   V("w1_kevin", {
@@ -150,7 +150,7 @@
              "Fumier sur les grilles, pneus en feu, un tracteur fonce sur le cordon. La contre-manif syndicale arrive en face. Je charge ?"],
     c: [
       { t: "Chargez.", cost: 4, r: "Bien reçu. On charge tout le monde. C’est plus simple.",
-        fx: { ordre: 6, police: 5, patrons: -6, colere: 10, blesses: 340, gav: 800, overton: 3 }, set: { charge: true },
+        fx: { ordre: 6, police: 5, patrons: -6, colere: 10, blesses: 340, gav: 800, overton: 6 }, set: { charge: true },
         news: "Charge contre les tracteurs et la contre-manif : 340 blessés" },
       { t: "Protégez les bâtiments. Séparez les cortèges. Pas de charge.", cost: 4, r: "Séparer des syndicalistes et des agriculteurs en colère. Je vous enverrai la facture des boucliers.",
         fx: { ordre: 2, colere: -4, police: -3, blesses: 30, gav: 100 }, news: "Manifestation patronale tendue mais sans charge : « Une première »" },
@@ -158,7 +158,7 @@
         fx: { ordre: -12, police: -12, colere: -4, blesses: 10, overton: -1 }, set: { retrait: true },
         news: "La préfecture recouverte de fumier : la police s’était retirée" },
     ],
-    d: { r: "Appel manqué. Le préfet a chargé. Tout le monde.", fx: { ordre: 6, police: 5, colere: 12, blesses: 410, gav: 900, overton: 3 }, set: { charge: true } },
+    d: { r: "Appel manqué. Le préfet a chargé. Tout le monde.", fx: { ordre: 6, police: 5, colere: 12, blesses: 410, gav: 900, overton: 6 }, set: { charge: true } },
   });
 
   V("w2_video_a", {
@@ -171,7 +171,7 @@
       { t: "Il faut attendre l’enquête.", cost: 5, r: "« Attendre l’enquête. » On a dénoncé cette phrase pendant dix ans.",
         fx: { police: 4, jeunes: -6, colere: 6, overton: 2 } },
       { t: "Il a dû glisser sur son tracteur.", cost: 4, r: "Je vais faire comme si je n’avais pas lu ça. Je le ferai mal.",
-        fx: { police: 6, overton: 2 },
+        fx: { police: 6, overton: 4 },
         leak: { p: 0.75, fx: { jeunes: -12, retraites: -8, colere: 12 }, news: "FUITE : « Il a dû glisser sur son tracteur », écrit le Président de gauche" } },
     ],
   });
@@ -257,7 +257,7 @@
       { t: "Vous avez raison. On revient au programme.", cost: 10, r: "On verra. On a été trahis souvent. On verra.",
         fx: { budget: -12, colere: -22, patrons: -12, ouvriers: 14, jeunes: 8, overton: -3 }, set: { cede: true, rigueur: false } },
       { t: "Réquisitionner les grévistes.", cost: 8, r: "Un gouvernement de gauche qui réquisitionne des grévistes. Vous entrez dans les livres d’histoire. Pas dans le bon chapitre.",
-        fx: { ordre: 8, colere: 12, ouvriers: -14, gav: 2000, overton: 5 }, set: { requisition: true } },
+        fx: { ordre: 8, colere: 12, ouvriers: -14, gav: 2000, overton: 6 }, set: { requisition: true } },
       { t: "Je démissionne ?", cost: 2, r: "…C’est une question ou une réponse ?", end: "burnout" },
     ],
   });
@@ -270,11 +270,11 @@
         fx: { jeunes: 8, police: -10, colere: -8, retraites: -4, overton: -3 },
         news: "Le Président à la marche blanche : « La police doit protéger, pas tuer »" },
       { t: "Couvre-feu et renforts.", cost: 6, r: "Les blindés sont prêts. Vos électeurs, eux, sont sous les blindés.",
-        fx: { ordre: 8, jeunes: -12, colere: 10, police: 5, gav: 900, blesses: 150, overton: 4 } },
+        fx: { ordre: 8, jeunes: -12, colere: 10, police: 5, gav: 900, blesses: 150, overton: 6 } },
       { t: "C’est la faute des réseaux sociaux.", cost: 3, r: "Les réseaux sociaux. Un de vos prédécesseurs avait accusé les jeux vidéo. Vous progressez.",
         fx: { jeunes: -8, colere: 4, retraites: 3, overton: 2 }, news: "Émeutes : le Président de gauche accuse les réseaux sociaux" },
     ],
-    d: { r: "Pas d’instruction. J’ai appliqué la doctrine. La doctrine, c’est moi.", fx: { ordre: 6, jeunes: -10, colere: 10, gav: 900, blesses: 200, overton: 4 } },
+    d: { r: "Pas d’instruction. J’ai appliqué la doctrine. La doctrine, c’est moi.", fx: { ordre: 6, jeunes: -10, colere: 10, gav: 900, blesses: 200, overton: 5 } },
   });
 
   V("w6_clemence", {
@@ -493,7 +493,7 @@
         r: "Notre groupe l’avait fait voter article par article, puis le texte entier avait été rejeté à six voix près. Cette fois, c’est un décret. La grande distribution parle de « soviétisation du lait ».",
         fx: { budget: -3, retraites: 3, patrons: -4, colere: -6, ordre: 2, overton: -1 }, news: "Prix plancher garanti pour les agriculteurs : la grande distribution furieuse" },
       { t: "Envoyez l’armée.", cost: 5, r: "L’armée contre les paysans, sous un gouvernement de gauche. Les manuels d’histoire hésitent sur le chapitre.",
-        fx: { ordre: 6, colere: 8, retraites: -6, blesses: 90, gav: 400, overton: 3 } },
+        fx: { ordre: 6, colere: 8, retraites: -6, blesses: 90, gav: 400, overton: 4 } },
       { t: "Supprimer les normes environnementales.", cost: 4, r: "Les tracteurs repartent. Les pesticides restent. Capucine Lombric pleure en direct.",
         fx: { eco: 5, patrons: 4, colere: -4, jeunes: -4, overton: 3 }, rel: { VP: -6 } },
     ],

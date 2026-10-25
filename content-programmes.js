@@ -44,7 +44,7 @@
       ] },
     { id: "climat", group: "VP", emoji: "🌱", name: "Urgence climatique",
       pitch: "Sauver ce qui peut l’être, contre les jets privés et les lobbies. Tu diriges les Verts Pâles.",
-      overton: -6, incumbency: -2,
+      overton: -6, incumbency: 0,
       start: { g: { jeunes: 10, ouvriers: -2, retraites: -4, patrons: -6, police: -4 }, rel: { HI: 40, PP: 50, CA: 40, DIV: 45, DP: 30, RH: 15 } },
       promises: [
         { text: "Interdire les jets privés", heir: "CA", state: S => (passed(S, "l_jets") ? "ok" : gone(S, "l_jets") ? "broken" : "pending") },

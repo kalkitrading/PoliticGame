@@ -10,6 +10,7 @@ require(__dirname + '/../content-gouvernements.js');
 require(__dirname + '/../content-coupsbas.js');
 require(__dirname + '/../content-pente.js');
 require(__dirname + '/../content-gauche.js');
+require(__dirname + '/../content-verts.js');
 const C = window.CONTENT;
 
 const G = ["jeunes", "ouvriers", "retraites", "patrons", "police"];
