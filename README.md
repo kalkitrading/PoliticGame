@@ -11,6 +11,7 @@ Aucune installation, aucun build.
 
 ## Mécaniques
 
+- **Le temps** : une semaine dure 6 minutes sur l'écran d'accueil. Dès que tu ouvres une appli pour lire (messages, Le Fil, Assemblée…), le temps ralentit fortement (📖 à côté de l'heure). Le bouton ⏩ accélère.
 - **Batterie** : chaque réponse coûte de l'énergie. À 0 %, le téléphone s'éteint et tes ministres décident à ta place.
 - **Silence** : un message ignoré déclenche la décision par défaut, souvent la pire.
 - **Fuites** 🔓 : les réponses cyniques peuvent ressortir dans la presse quelques jours plus tard.

@@ -3,10 +3,11 @@
   "use strict";
 
   const C = window.CONTENT;
-  const WEEK_MS = 240000;          // durée réelle d'une semaine à vitesse normale (4 min)
+  const WEEK_MS = 360000;          // durée réelle d'une semaine à vitesse normale (6 min)
   const FAST = 7;                   // multiplicateur en accéléré
-  const CALL_RING_MS = 12000;       // temps pour décrocher
-  const CALL_TALK_MS = 22000;       // temps pour répondre pendant l'appel
+  const READING = 0.3;              // le temps ralentit quand tu lis (dans une appli)
+  const CALL_RING_MS = 15000;       // temps pour décrocher
+  const CALL_TALK_MS = 32000;       // temps pour répondre pendant l'appel
   const PASSIVE_DRAIN = 14;         // % de batterie perdus par semaine sans rien faire
   const POST_COST = 6;
   const GROUPS = ["jeunes", "ouvriers", "retraites", "patrons", "police"];
@@ -178,7 +179,7 @@
         if (rt && S.call.phase === "ring") rt.textContent = `Appel entrant… ${Math.ceil(S.call.left / 1000)} s`;
         if (S.call.left <= 0) missCall();
       }
-      const speed = S.call ? 1 : S.speed;
+      const speed = S.call ? 1 : S.speed > 1 ? S.speed : reading() ? READING : 1;
       const dw = dt * speed / WEEK_MS;
       S.t += dw;
       if (S.dnd) S.battery = Math.min(100, S.battery + dw * DND_RECHARGE);
@@ -509,6 +510,7 @@
       go("home");
       S.running = true;
       lastTs = 0;
+      if (w === 1) textToast("📖 Le temps ralentit quand tu lis. ⏩ pour accélérer.");
     };
     el.onclick = go2;
     cardTimer = setTimeout(go2, 2600);
@@ -1147,8 +1149,12 @@
   }
 
   // ------------------------------------------------------------------ rendu : statut & accueil
+  // dans une appli (messages, Fil, Assemblée…), le temps ralentit pour laisser lire
+  const reading = () => !!S && !S.dnd && !["home", "lock", "title", "programme"].includes(view);
+
   function updateStatus() {
     $("#clock").textContent = S ? clockText() : "08:00";
+    $("#clock").classList.toggle("slow", !!S && S.running && S.speed <= 1 && reading());
     const b = S ? Math.ceil(S.battery) : 100;
     $("#batt-pct").textContent = `${b}%`;
     $("#batt-fill").style.width = `${b}%`;
