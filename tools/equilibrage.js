@@ -13,6 +13,7 @@ require(__dirname + '/../content-gauche.js');
 require(__dirname + '/../content-verts.js');
 require(__dirname + '/../content-droite.js');
 require(__dirname + '/../content-rh.js');
+require(__dirname + '/../content-centre.js');
 const C = window.CONTENT;
 
 const G = ["jeunes", "ouvriers", "retraites", "patrons", "police"];

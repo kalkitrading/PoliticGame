@@ -40,6 +40,9 @@
   const esc = s => {
     let t = String(s);
     if (S && S.names) for (const [a, b] of Object.entries(S.names)) t = t.split(a).join(b);
+    // au Centre, le téléphone parle la langue du pouvoir, un peu plus chaque semaine (C.novlangue)
+    const nv = S && S.flags && !S.flags.parlerVrai && C.novlangue && C.novlangue[S.programme];
+    if (nv) for (const lv of nv) if (S.week >= lv.from) for (const [a, b] of Object.entries(lv.words)) t = t.split(a).join(b);
     // dans La Pente, les mots changent à mesure que les décrets passent
     if (S && S.pente) for (const lv of C.lexique) if (S.pente.signed.length >= lv.from) for (const [a, b] of Object.entries(lv.words)) t = t.split(a).join(b);
     return t.replace(/[&<>"]/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]));

@@ -74,7 +74,7 @@
       ] },
     { id: "centre", group: "CA", emoji: "🤷", name: "Ni l’un ni l’autre",
       pitch: "Ni de gauche ni de droite, bien au contraire. Le but : garder le pouvoir. Tu diriges le Centre Absolu.",
-      overton: 5, incumbency: -12, // l'usure du « en même temps »
+      overton: 5, incumbency: -14, // l'usure du « en même temps »
       start: { g: {}, rel: {} },
       promises: [
         { text: "Faire voter le budget", heir: "DP", state: S => (passed(S, "l_budget") ? "ok" : gone(S, "l_budget") ? "broken" : "pending") },
