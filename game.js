@@ -5,8 +5,8 @@
   const C = window.CONTENT;
   const WEEK_MS = 300000;          // durée réelle d'une semaine à vitesse normale (5 min)
   const FAST = 7;                   // multiplicateur en accéléré
-  const READING = 0.4;              // le temps ralentit quand tu lis (dans une appli)
-  const IDLE = 5;                   // et file tout seul quand rien n'attend de réponse
+  const READING = 0.12;             // le temps ralentit beaucoup quand tu lis (dans une appli)
+  const IDLE = 5;                   // et file tout seul sur l'accueil quand rien n'attend de réponse
   const CALL_RING_MS = 15000;       // temps pour décrocher
   const CALL_TALK_MS = 32000;       // temps pour répondre pendant l'appel
   const PASSIVE_DRAIN = 14;         // % de batterie perdus par semaine sans rien faire
@@ -185,7 +185,8 @@
         if (rt && S.call.phase === "ring") rt.textContent = `Appel entrant… ${Math.ceil(S.call.left / 1000)} s`;
         if (S.call.left <= 0) missCall();
       }
-      const speed = S.call ? 1 : S.speed > 1 ? S.speed : idle() ? IDLE : reading() ? READING : 1;
+      // lire passe avant tout : dans une appli, le temps ralentit, même si rien n'attend de réponse
+      const speed = S.call ? 1 : S.speed > 1 ? S.speed : reading() ? READING : idle() ? IDLE : 1;
       const dw = dt * speed / WEEK_MS;
       S.t += dw;
       if (S.dnd) S.battery = Math.min(100, S.battery + dw * DND_RECHARGE);
@@ -540,7 +541,7 @@
       go("home");
       S.running = true;
       lastTs = 0;
-      if (w === 1) textToast("⏩ Le temps file quand rien ne t’attend, 📖 ralentit quand tu lis.");
+      if (w === 1) textToast("📖 Le temps ralentit quand tu lis. ⏩ Il file sur l’accueil quand rien ne t’attend.");
     };
     el.onclick = go2;
     cardTimer = setTimeout(go2, 2600);
@@ -1190,8 +1191,9 @@
 
   function updateStatus() {
     $("#clock").textContent = S ? clockText() : "08:00";
-    const auto = !!S && S.running && S.speed <= 1 && !S.call && idle();
-    $("#clock").classList.toggle("slow", !!S && S.running && S.speed <= 1 && !auto && reading());
+    const slow = !!S && S.running && S.speed <= 1 && !S.call && reading();
+    const auto = !!S && S.running && S.speed <= 1 && !S.call && !slow && idle();
+    $("#clock").classList.toggle("slow", slow);
     $("#clock").classList.toggle("auto", auto);
     const b = S ? Math.ceil(S.battery) : 100;
     $("#batt-pct").textContent = `${b}%`;
