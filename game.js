@@ -5,7 +5,7 @@
   const C = window.CONTENT;
   const WEEK_MS = 300000;          // durée réelle d'une semaine à vitesse normale (5 min)
   const FAST = 7;                   // multiplicateur en accéléré
-  const READING = 0.12;             // le temps ralentit beaucoup quand tu lis (dans une appli)
+  const READING = 0.4;              // le temps ralentit quand tu lis (dans une appli)
   const IDLE = 5;                   // et file tout seul sur l'accueil quand rien n'attend de réponse
   const CALL_RING_MS = 15000;       // temps pour décrocher
   const CALL_TALK_MS = 32000;       // temps pour répondre pendant l'appel
