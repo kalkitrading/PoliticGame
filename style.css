@@ -301,7 +301,31 @@ button:focus-visible { outline: 2px solid var(--gold); outline-offset: 2px; }
 #card .t { animation-delay: .15s; } #card .s { animation-delay: .35s; }
 
 /* récap */
-#recap, #ending { background: var(--screen); overflow-y: auto; }
+#recap, #ending, #proces, #verite { background: var(--screen); overflow-y: auto; }
+/* le Procès et l'écran de vérité : sobres, sans couleur de jeu */
+#proces { background: #0d0e12; }
+#verite { background: #f3f1ea; color: #1b1c20; }
+#verite .card { background: #fff; color: #1b1c20; }
+#verite .note, #verite .end-p { color: #33353d; }
+#verite .end-k { color: #8a1c24; }
+.pr-dec { margin: 0 0 10px; display: flex; flex-direction: column; gap: 2px; font-size: 15px; }
+.pr-dec small { color: var(--dim); font-size: 12px; }
+.pr-sms { display: flex; flex-direction: column; align-items: flex-end; gap: 3px; margin-bottom: 10px; }
+.pr-sms small { color: var(--dim); font-size: 11px; }
+.pr-choices { display: flex; flex-direction: column; gap: 8px; }
+.pr-r { margin-top: 10px; }
+.pr-vt { margin: 0 0 8px; font: 400 30px/1 var(--f-head); color: #ffb4ba; }
+.vt-scale { display: flex; flex-direction: column; gap: 4px; margin: 12px 0; }
+.vt-row { display: grid; grid-template-columns: 56px 1fr; gap: 2px 10px; padding: 7px 10px; border-radius: 10px; background: #ecebe4; font-size: 13px; }
+.vt-row b { grid-row: span 2; align-self: center; font-variant-numeric: tabular-nums; }
+.vt-row small { color: #6b6d75; }
+.vt-row.me { background: #f6d5d7; } .vt-row.me small { color: #8a1c24; font-weight: 700; }
+.vt-row.sec { background: #efe3c9; } .vt-row.ref { background: #d9eadf; }
+.vt-you { font-weight: 700; }
+.vt-sig { padding: 10px 0; border-top: 1px solid #e3e1d8; }
+.vt-sig b { font-size: 15px; }
+.vt-sig p { margin: 4px 0 0; font-size: 14px; color: #6b6d75; }
+.vt-sig.on p { color: #33353d; }
 .rc { padding: calc(24px + env(safe-area-inset-top, 0px)) 18px calc(28px + env(safe-area-inset-bottom, 0px)); display: flex; flex-direction: column; gap: 16px; }
 .rc .k { font-size: 12px; letter-spacing: .14em; text-transform: uppercase; color: var(--gold); font-weight: 700; }
 .rc h2 { margin: 0; font: 400 40px/1 var(--f-head); text-wrap: balance; }

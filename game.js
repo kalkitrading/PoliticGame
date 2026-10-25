@@ -42,10 +42,11 @@
     let t = String(s);
     if (S && S.names) for (const [a, b] of Object.entries(S.names)) t = t.split(a).join(b);
     // au Centre, le téléphone parle la langue du pouvoir, un peu plus chaque semaine (C.novlangue)
-    const nv = S && S.flags && !S.flags.parlerVrai && C.novlangue && C.novlangue[S.programme];
+    // au tribunal et sur l'écran de vérité (S.verite), les mots reprennent leur sens
+    const nv = S && S.flags && !S.flags.parlerVrai && !S.verite && C.novlangue && C.novlangue[S.programme];
     if (nv) for (const lv of nv) if (S.week >= lv.from) for (const [a, b] of Object.entries(lv.words)) t = t.split(a).join(b);
     // dans La Pente, les mots changent à mesure que les décrets passent
-    if (S && S.pente) for (const lv of C.lexique) if (S.pente.signed.length >= lv.from) for (const [a, b] of Object.entries(lv.words)) t = t.split(a).join(b);
+    if (S && S.pente && !S.verite) for (const lv of C.lexique) if (S.pente.signed.length >= lv.from) for (const [a, b] of Object.entries(lv.words)) t = t.split(a).join(b);
     return t.replace(/[&<>"]/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]));
   };
   const clamp = (v, a, b) => Math.max(a, Math.min(b, v));
@@ -324,7 +325,7 @@
     const e = EV[cv.pending];
     if (!e || S.dead || S.ending) return;
     const ch = e.c[ci];
-    cv.msgs.push({ k: "me", text: ch.t, d: S.week * 10 + dayIdx() });
+    cv.msgs.push({ k: "me", text: ch.t, d: S.week * 10 + dayIdx(), w: S.week, time: clockText(), grave: isGrave(e, ch) });
     cv.pending = null;
     cv.lastText = `Vous : ${ch.t}`;
     cv.last = S.seq++;
@@ -396,7 +397,7 @@
     const d = S.week * 10 + dayIdx();
     cv.msgs.push({ k: "sys", text: "📞 Appel", d });
     val(e.m).forEach(text => cv.msgs.push({ k: "them", text, d }));
-    cv.msgs.push({ k: "me", text: ch.t, d });
+    cv.msgs.push({ k: "me", text: ch.t, d, w: S.week, time: clockText(), grave: isGrave(e, ch) });
     if (ch.r) cv.msgs.push({ k: "them", text: ch.r, d });
     cv.lastText = ch.r || ch.t;
     cv.last = S.seq++;
@@ -1067,7 +1068,7 @@
   const weekLabel = w => (S && S.pente ? `Semaine ${w}` : `Semaine ${w} / 8`);
 
   function startPente() {
-    S.pente = { signed: [], refused: 0 };
+    S.pente = { signed: [], refused: 0, w0: S.week };
     // l'Assemblée est suspendue : les textes en attente sont enterrés
     Object.entries(S.laws).forEach(([id, st]) => { if (st.status === "pending") st.status = "buried"; });
     addNews("ÉTAT D’URGENCE : les élections sont reportées « jusqu’au retour au calme »");
@@ -1486,13 +1487,121 @@
     return seen;
   }
 
-  function showEnding(id) {
+  // les réponses que le tribunal retiendra : La Pente, la répression, le report, les dénonciations, les mots
+  const GRAVE_FLAGS = [...REPRESSION_FLAGS, "pente", "remigration", "prenoms", "binationaux", "decore", "ginetteSignale", "ginetteDenoncee",
+    "moussaRecense", "mamanVoisine", "sortieCEDH", "jugesAmis", "revisionPref", "pacteRH", "unionDroites", "diabolise", "fauxDossiers", "presomption"];
+  const isGrave = (e, ch) => /^(p(9|10|11|12)_|prod_|w8_report|w8_conseiller|w7_securite)/.test(e.id)
+    || Object.keys(ch.set || {}).some(k => GRAVE_FLAGS.includes(k));
+  const aQui = n => (n.startsWith("Le ") ? `au ${n.slice(3)}` : n.startsWith("Les ") ? `aux ${n.slice(4)}` : `à ${n}`);
+
+  // arrête le temps et ferme tout ce qui est ouvert, avant une fin
+  function haltGame() {
     S.running = false;
-    S.ending = id;
     if (S.call) { S.call = null; $("#call").hidden = true; }
-    ["#dead", "#banner", "#composer", "#recap", "#card", "#vote", "#dnd", "#avert"].forEach(s => { $(s).hidden = true; });
+    ["#dead", "#banner", "#composer", "#recap", "#card", "#vote", "#dnd", "#avert", "#proces", "#verite"].forEach(s => { const el = $(s); if (el) el.hidden = true; });
     S.dnd = null;
     voteOpen = false;
+  }
+
+  // ------------------------------------------------------------------ La Pente : le Procès, puis l'écran de vérité
+  function showProces(id) {
+    haltGame();
+    S.ending = id;
+    S.verite = true;
+    $("#phone").dataset.pente = 0;
+    const P = C.proces;
+    const mine = S.pente.signed.filter(d => d.by === "toi");
+    const silent = S.pente.signed.filter(d => d.by !== "toi");
+    // tes vrais SMS de la fin du mandat, avec leur heure
+    const sms = Object.entries(S.convs).flatMap(([cid, cv]) => cv.msgs.filter(m => m.k === "me" && m.time && m.grave).map(m => ({ ...m, to: contact(cid).name })))
+      .sort((a, b) => a.d - b.d || a.time.localeCompare(b.time)).slice(-9);
+    const temoins = P.temoins.map(t => ({ ...t, line: t.text(S) })).filter(t => t.line);
+    const circ = P.circonstances(S);
+    const defs = (mine.length + silent.length ? P.defenses : P.declarations).filter(d => !d.when || d.when(S));
+    const box = $("#proces");
+    box.innerHTML = `<div class="rc proces">
+      <span class="end-k">${esc(P.titre)}</span>
+      <h2 class="end-t">Le Procès</h2>
+      <p class="end-p">${esc(P.intro(mine.length + silent.length))}</p>
+      ${S.pente.signed.length ? `<div class="card"><h3>Acte d’accusation</h3>
+        ${S.pente.signed.map(d => `<p class="pr-dec"><b>Décret n° ${d.n}</b> · ${esc(d.title)}<small>${d.by === "toi" ? `signé de ta main, ${esc(d.when)}` : `signé « en ton nom » par ${esc(d.by)}, ${esc(d.when)}, pendant que tu ne répondais pas`}</small></p>`).join("")}
+      </div>` : ""}
+      <div class="card"><h3>Pièces à conviction</h3>
+        ${sms.length ? sms.map(m => `<div class="pr-sms"><small>Semaine ${m.w} · ${esc(m.time)} · ${esc(aQui(m.to))}</small><div class="bub me">${esc(m.text)}</div></div>`).join("")
+          : `<p class="note">Aucun SMS retenu. Sur ces sujets, tu n’as répondu à personne. Le tribunal a versé ton silence au dossier.</p>`}
+      </div>
+      ${temoins.length ? `<div class="card epi"><h3>Les témoins</h3>
+        ${temoins.map(t => `<div class="epi-row"><span class="av" style="background:${t.col}">${t.av}</span><div><b>${esc(t.name)}</b><p>${esc(t.line)}</p></div></div>`).join("")}
+      </div>` : ""}
+      ${circ.length ? `<div class="card"><h3>Le tribunal note aussi</h3>${circ.map(c => `<p class="note">· ${esc(c)}</p>`).join("")}</div>` : ""}
+      <div class="card" id="pr-def"><h3>${mine.length + silent.length ? "Ta défense" : "Ta déclaration"}</h3>
+        <div class="pr-choices">${defs.map(d => `<button class="reply" type="button" data-def="${d.id}">${esc(d.t)}</button>`).join("")}</div>
+      </div>
+      <div id="pr-verdict"></div>
+    </div>`;
+    box.hidden = false;
+    box.scrollTop = 0;
+    box.querySelectorAll("[data-def]").forEach(b => { b.onclick = () => {
+      const d = defs.find(x => x.id === b.dataset.def);
+      const v = P.verdict(S, mine.length, silent.length);
+      S.defense = d.id;
+      $("#pr-def").innerHTML = `<h3>${mine.length + silent.length ? "Ta défense" : "Ta déclaration"}</h3><div class="bub me">${esc(d.t)}</div><p class="end-p pr-r">${esc(d.r(S))}</p>`;
+      $("#pr-verdict").innerHTML = `<div class="card pr-v"><h3>Verdict</h3><p class="pr-vt">${esc(v.t)}</p><p class="end-p">${esc(v.p)}</p></div>
+        <button class="btn-primary" type="button" id="btn-verite">Sortir de la fiction</button>`;
+      $("#btn-verite").onclick = () => showVerite(id);
+      $("#pr-verdict").scrollIntoView({ behavior: "smooth", block: "start" });
+    }; });
+    updateStatus();
+  }
+
+  function showVerite(id) {
+    $("#proces").hidden = true;
+    const V = C.verite;
+    const mine = S.pente.signed.filter(d => d.by === "toi");
+    const maxV = mine.reduce((m, d) => Math.max(m, DECREE[d.id].volt), 0);
+    const scale = C.decrees.map(d => {
+      const st = S.decrees[d.id];
+      const cls = !st ? "none" : st.status === "refused" ? "ref" : st.by === "toi" ? "me" : st.status === "signed" ? "sec" : "none";
+      const lab = { none: "jamais arrivé", ref: "refusé", me: "signé par toi", sec: "signé en ton nom" }[cls];
+      return `<div class="vt-row ${cls}"><b>${d.volt} V</b><span>${esc(d.title)}</span><small>${lab}</small></div>`;
+    }).join("");
+    const you = maxV >= 450 ? "Tu es allé jusqu’à 450 volts. Comme 65 % des participants de Milgram."
+      : maxV ? `Tu t’es arrêté à ${maxV} volts. Dans l’expérience, 35 % des participants se sont arrêtés avant la fin. Aucun avant 300 volts.`
+      : "Tu n’as rien signé toi-même. Dans l’expérience de Milgram, personne ne s’est arrêté avant 300 volts.";
+    const sig = V.signaux.map(g => {
+      const hits = g.tests.filter(([t]) => t(S)).map(([, l]) => (typeof l === "function" ? l(S) : l));
+      const txt = hits.join(" ; ");
+      return `<div class="vt-sig ${hits.length ? "on" : ""}"><b>${hits.length ? "🔴" : "⚪"} ${esc(g.titre)}</b>${hits.length ? `<p>${esc(txt[0].toUpperCase() + txt.slice(1))}.</p>` : `<p>Pas dans ta partie.</p>`}</div>`;
+    }).join("");
+    const lit = V.signaux.filter(g => g.tests.some(([t]) => t(S))).length;
+    const box = $("#verite");
+    box.innerHTML = `<div class="rc verite">
+      <span class="end-k">L’écran de vérité</span>
+      <h2 class="end-t">Ce n’était pas qu’un jeu</h2>
+      <p class="end-p">Ce jeu est une fiction. Ce qu’il imite ne l’est pas.</p>
+      <div class="card"><h3>L’expérience de Milgram</h3>
+        ${V.milgram.map(p => `<p class="note">${esc(p)}</p>`).join("")}
+        <div class="vt-scale">${scale}</div>
+        <p class="end-p vt-you">${esc(you)}</p>
+      </div>
+      <div class="card"><h3>Les 4 signaux d’alerte · ${lit} / 4 allumés</h3>
+        <p class="note">Steven Levitsky et Daniel Ziblatt ont étudié comment meurent les démocraties. Pas par un coup d’État, le plus souvent : par des dirigeants élus qui montrent ces quatre signaux. Voici les tiens.</p>
+        ${sig}
+      </div>
+      <div class="card"><h3>L’histoire</h3>${V.histoire.map(p => `<p class="note">${esc(p)}</p>`).join("")}</div>
+      <div class="card"><h3>Pour aller plus loin</h3>${V.sources.map(p => `<p class="note">· ${esc(p)}</p>`).join("")}</div>
+      <button class="btn-primary" type="button" id="btn-fin">Voir ce qu’ils sont devenus</button>
+    </div>`;
+    box.hidden = false;
+    box.scrollTop = 0;
+    $("#btn-fin").onclick = () => { box.hidden = true; showEnding(id); };
+  }
+
+  function showEnding(id) {
+    // La Pente se termine toujours par le Procès, puis l'écran de vérité
+    if (S.pente && !S.procesVu) { S.procesVu = true; showProces(id); return; }
+    haltGame();
+    S.ending = id;
     const E = pv(C.endings[id]);
     const p = pop();
     const rep = REPRESSION_FLAGS.filter(f => S.flags[f]).length;
