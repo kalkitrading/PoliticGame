@@ -27,6 +27,13 @@
   C.events.forEach(e => { EV[e.id] = e; });
   C.pool.forEach(e => { EV[e.id] = e; });
   C.alerts.forEach(e => { EV[e.id] = e; });
+  // la version d'un contenu propre à ton programme (variants, voir content-gauche.js)
+  const pv = o => (S && o && o.variants && o.variants[S.programme] ? { ...o, ...o.variants[S.programme] } : o);
+  const byProg = (m, fallback) => (m && m[S.programme]) || fallback;
+  const weekInfo = w => ({ ...C.weeks[w], ...(byProg(C.weeksBy, {})[w] || {}) });
+  const postsOf = w => byProg(C.postsBy, {})[w] || C.posts[w];
+  // une variante qui réécrit les réponses porte elle-même son glissement d'Overton (ov: false)
+  const ovShift = (e, ci) => { if (e.ov !== false) shift(C.ovEvent(e.id, ci)); };
 
   const $ = s => document.querySelector(s);
   // les noms des ministres changent selon ton gouvernement (Rabot devient M. Partage, etc.)
@@ -190,14 +197,16 @@
   }
 
   function spawn() {
-    for (const e of C.events) {
+    for (const e0 of C.events) {
+      const e = EV[e0.id];
       if (e.w !== S.week || S.spawned[e.id] || e.at > S.t) continue;
       S.spawned[e.id] = true;
       // une seule variante d'un même message
       if (e.alt && S.altUsed[e.alt]) continue;
       if (!e.when || e.when(S)) { if (e.alt) S.altUsed[e.alt] = true; deliver(e); }
     }
-    for (const p of C.citizenPosts) {
+    for (const p0 of C.citizenPosts) {
+      const p = pv(p0);
       if (p.w !== S.week || S.cposts[p.id] || p.at > S.t) continue;
       S.cposts[p.id] = true;
       if (p.when && !p.when(S)) continue;
@@ -208,7 +217,8 @@
       S.dnd.nextAct = S.t + rnd(0.07, 0.11);
       ministerAct();
     }
-    for (const a of C.alerts) {
+    for (const a0 of C.alerts) {
+      const a = EV[a0.id];
       // une alerte attend que tu sois réveillé
       if (S.alerts[a.id] || S.dead || S.dnd || !a.when(S)) continue;
       const cv = S.convs[val(a.from)];
@@ -284,7 +294,7 @@
     cv.lastText = "Appel manqué"; cv.last = S.seq++; cv.unread++;
     S.stats.ignores++; S.ignoredWeek++;
     apply(d);
-    shift(C.ovEvent(e.id, "d"));
+    ovShift(e, "d");
   }
 
   function ignore(cid, label) {
@@ -297,7 +307,7 @@
     const d = e.d || {};
     if (d.r) { cv.msgs.push({ k: "them", text: d.r }); cv.lastText = d.r; }
     apply(d);
-    shift(C.ovEvent(e.id, "d"));
+    ovShift(e, "d");
     if (d.end) endGameSoon(d.end);
   }
 
@@ -311,7 +321,7 @@
     cv.lastText = `Vous : ${ch.t}`;
     cv.last = S.seq++;
     const deltas = apply(ch);
-    shift(C.ovEvent(e.id, ci));
+    ovShift(e, ci);
     if (ch.leak && Math.random() < ch.leak.p) scheduleLeak(e, ci, cid);
     showFx(deltas);
     if (ch.r) {
@@ -363,7 +373,7 @@
     cv.unread++;
     S.stats.ignores++; S.ignoredWeek++;
     showFx(apply(d));
-    shift(C.ovEvent(e.id, "d"));
+    ovShift(e, "d");
     if (!silent) textToast("📞 Appel manqué");
     refresh();
   }
@@ -399,7 +409,7 @@
     }, 700);
 
     const deltas = apply(ch);
-    shift(C.ovEvent(e.id, ci));
+    ovShift(e, ci);
     if (ch.leak && Math.random() < ch.leak.p) scheduleLeak(e, ci, cid);
     showFx(deltas);
     if (ch.end) endGameSoon(ch.end);
@@ -445,7 +455,7 @@
 
   function ambientPost() {
     const tier = S.pente && S.pente.signed.length >= 2 ? "pente" : S.colere < 40 ? "calm" : S.colere < 65 ? "tense" : "angry";
-    const list = C.ambient[tier];
+    const list = (C.ambientBy && C.ambientBy[S.programme] && C.ambientBy[S.programme][tier]) || C.ambient[tier];
     const used = S.ambUsed[tier] || (S.ambUsed[tier] = []);
     if (used.length >= list.length) used.length = 0;
     let i;
@@ -455,7 +465,7 @@
   }
 
   function publish(i) {
-    const opt = C.posts[S.week][i];
+    const opt = postsOf(S.week)[i];
     S.posted = true;
     $("#composer").hidden = true;
     addPost({ h: "@President_Hex", t: opt.t, mine: true, likes: Math.floor(rnd(2000, 40000)) });
@@ -485,7 +495,7 @@
   }
 
   function showCard(w) {
-    const wk = C.weeks[w];
+    const wk = weekInfo(w);
     const el = $("#card");
     el.innerHTML = `<p class="k">${weekLabel(w)}</p><p class="t">${esc(wk.title)}</p><p class="s">${esc(wk.agenda[0])}</p>`;
     el.hidden = false;
@@ -548,7 +558,7 @@
     // sous l'état d'urgence, plus de sondage ni de Parlement pour te faire tomber
     if (S.pente) return null;
     if (S.budget <= 0) return "faillite";
-    if (S.g.patrons <= 5) return "debranche";
+    if (S.g.patrons <= 5 && !S.flags.controleCapitaux) return "debranche";   // le contrôle des capitaux coupe la prise
     if (pop() <= 15) return "destitue";
     return null;
   }
@@ -921,7 +931,7 @@
       S.dndUsed = {};
       list = C.dndActs.filter(a => !a.when || a.when(S));
     }
-    const a = pick(list);
+    const a = pv(pick(list));
     S.dndUsed[a.id] = true;
     apply({ fx: a.fx });
     if (a.post) addPost({ h: a.post[0], t: a.post[1], mine: true });
@@ -1181,7 +1191,7 @@
     const [m, col] = mood();
     $("#widget").innerHTML = `
       <span class="wk">${weekLabel(S.week)} · ${C.programme(S).emoji} ${esc(C.programme(S).name)}</span>
-      <span class="wt">${esc(C.weeks[S.week].title)}</span>
+      <span class="wt">${esc(weekInfo(S.week).title)}</span>
       <span class="wpop"><b>${Math.round(pop())}%</b><small>Popularité</small></span>
       <span class="wmood">Climat social <span class="mood-pill" style="background:${col}22;color:${col}">${m}</span></span>
       <button id="btn-dnd" class="btn-dnd" type="button"${S.dead ? " disabled" : ""}><span>🌙</span> Ne pas déranger<small>Tes ministres décident à ta place</small></button>`;
@@ -1261,13 +1271,13 @@
         </div>
       </article>`;
     }).join("") : `<p class="empty">Le Fil est calme. C’est rarement bon signe.</p>`;
-    const can = !S.posted && !S.dead && C.posts[S.week];
+    const can = !S.posted && !S.dead && postsOf(S.week);
     $("#btn-post").disabled = !can;
     $("#btn-post").textContent = S.posted ? "Publié" : "Publier";
   }
 
   function openComposer() {
-    const opts = C.posts[S.week];
+    const opts = postsOf(S.week);
     if (!opts || S.posted) return;
     const el = $("#composer");
     el.innerHTML = `<div class="sheet">
@@ -1356,7 +1366,7 @@
     if (!S.news.length) { $("#news").innerHTML = `<p class="empty">Rien à la une. Les rédactions s’ennuient. Ça ne va pas durer.</p>`; return; }
     let html = "", lastW = null, first = true;
     for (const n of S.news) {
-      if (n.w !== lastW) { lastW = n.w; html += `<div class="news-week">Semaine ${n.w} · ${esc(C.weeks[n.w].title)}</div>`; }
+      if (n.w !== lastW) { lastW = n.w; html += `<div class="news-week">Semaine ${n.w} · ${esc(weekInfo(n.w).title)}</div>`; }
       html += `<div class="headline ${first ? "first" : ""}">${first ? `<span class="live">DIRECT</span>` : ""}${esc(n.text)}</div>`;
       first = false;
     }
@@ -1366,7 +1376,7 @@
   function renderAgenda() {
     let html = promisesCard(false);
     for (let w = 1; w <= (S.pente ? C.penteLastWeek : 8); w++) {
-      const wk = C.weeks[w];
+      const wk = weekInfo(w);
       const cls = w < S.week ? "past" : w === S.week ? "now" : "";
       const known = w <= S.week + 1 || w === 8;
       html += `<div class="ag-week ${cls}"><span class="n">${w}</span><b>${known ? esc(wk.title) : "???"}</b>
@@ -1421,7 +1431,7 @@
     const el = $("#recap");
     el.innerHTML = `<div class="rc">
       <span class="k">${weekLabel(S.week)} · terminée</span>
-      <h2>${esc(C.weeks[S.week].title)}</h2>
+      <h2>${esc(weekInfo(S.week).title)}</h2>
       ${heads.length ? `<ul class="heads">${heads.map(h => `<li>${esc(h)}</li>`).join("")}</ul>` : `<p class="note">Aucune une cette semaine. Une semaine calme, c’est suspect.</p>`}
       <div class="card"><h3>Popularité : ${Math.round(pop())}% ${deltaHtml(pop() - ws.pop)}</h3>
         ${GROUPS.map(k => barRow(LABEL[k], S.g[k], S.g[k] - ws.g[k])).join("")}
@@ -1456,7 +1466,7 @@
     ["#dead", "#banner", "#composer", "#recap", "#card", "#vote", "#dnd", "#avert"].forEach(s => { $(s).hidden = true; });
     S.dnd = null;
     voteOpen = false;
-    const E = C.endings[id];
+    const E = pv(C.endings[id]);
     const p = pop();
     const rep = REPRESSION_FLAGS.filter(f => S.flags[f]).length;
     let text = E.text, vote = "", you = "";
@@ -1592,9 +1602,10 @@
 
   function newGame(progId) {
     S = newState(progId);
+    [...C.events, ...C.pool, ...C.alerts].forEach(e => { EV[e.id] = pv(e); });
     $("#phone").dataset.pente = 0;
     for (let i = 0; i < 3; i++) {
-      const [h, t] = C.ambient.calm[i];
+      const [h, t] = ((C.ambientBy && C.ambientBy[S.programme]) || C.ambient).calm[i];
       S.feed.push({ h, t, likes: Math.floor(rnd(40, 3000)), rts: Math.floor(rnd(5, 400)), time: "Dim 22:1" + i });
     }
     S.feedUnread = 0;

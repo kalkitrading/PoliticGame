@@ -9,6 +9,7 @@ require(__dirname + '/../content-programmes.js');
 require(__dirname + '/../content-gouvernements.js');
 require(__dirname + '/../content-coupsbas.js');
 require(__dirname + '/../content-pente.js');
+require(__dirname + '/../content-gauche.js');
 const C = window.CONTENT;
 
 const G = ["jeunes", "ouvriers", "retraites", "patrons", "police"];
@@ -17,6 +18,9 @@ const MAJ = 289, ECO_DRIFT = +(process.env.ECO_DRIFT || 8), USURE = +(process.en
 const cl = (v, a, b) => Math.max(a, Math.min(b, v));
 const rnd = (a, b) => a + Math.random() * (b - a);
 const EV = {}; [...C.events, ...C.pool].forEach(e => { EV[e.id] = e; });
+// même logique que pv() / ovShift() dans game.js : la version d'un contenu propre au programme
+const pvOf = (S, o) => (o && o.variants && o.variants[S.programme] ? { ...o, ...o.variants[S.programme] } : o);
+const ovOf = (e, ci) => (e.ov === false ? 0 : C.ovEvent(e.id, ci));
 
 function game(strat, progId = "centre") {
   // même initialisation que newState() dans game.js
@@ -58,7 +62,7 @@ function game(strat, progId = "centre") {
     if (S.colere >= 100 && S.ordre < 65) return "revolution";
     if (S.g.police <= 8) return "coup";
     if (S.budget <= 0) return "faillite";
-    if (S.g.patrons <= 5) return "debranche";
+    if (S.g.patrons <= 5 && !S.flags.controleCapitaux) return "debranche";   // le contrôle des capitaux coupe la prise
     if (pop() <= 15) return "destitue";
     return null;
   }
@@ -111,7 +115,7 @@ function game(strat, progId = "centre") {
   function ministerAct() {
     let list = C.dndActs.filter(a => (!a.when || a.when(S)) && !S.dndUsed[a.id]);
     if (!list.length) { S.dndUsed = {}; list = C.dndActs.filter(a => !a.when || a.when(S)); }
-    const a = list[Math.floor(Math.random() * list.length)];
+    const a = pvOf(S, list[Math.floor(Math.random() * list.length)]);
     S.dndUsed[a.id] = true; S.dndN++;
     apply({ fx: a.fx });
   }
@@ -119,7 +123,8 @@ function game(strat, progId = "centre") {
   const queue = []; // {w, at, fn}
   const leakQ = [];
 
-  function runEvent(e) {
+  function runEvent(e0) {
+    const e = pvOf(S, e0);
     if (e.alt && S.altUsed[e.alt]) return false;
     if (e.when && !e.when(S)) return false;
     if (e.alt) S.altUsed[e.alt] = true;
@@ -130,7 +135,7 @@ function game(strat, progId = "centre") {
       const ci = e.c.indexOf(pick);
       spend(e.call ? 8 + (pick.cost ?? 4) : (pick.cost ?? 8));
       apply(pick);
-      shift(C.ovEvent(e.id, ci));
+      shift(ovOf(e, ci));
       if (pick.leak && Math.random() < pick.leak.p) {
         const L = pick.leak;
         if (L.soon || S.week >= 8) queue.push({ w: S.week, at: S.t + rnd(0.05, 0.12), fn: () => { S.stats.fuites++; apply({ fx: L.fx, rel: L.rel, image: L.image }); } });
@@ -141,7 +146,7 @@ function game(strat, progId = "centre") {
     } else {
       S.stats.ignores++;
       apply(e.d);
-      shift(C.ovEvent(e.id, "d"));
+      shift(ovOf(e, "d"));
       if (e.d && e.d.end) end(e.d.end);
       S.log.push(`S${S.week} ${e.id}: (ignoré)`);
     }
@@ -192,7 +197,7 @@ function game(strat, progId = "centre") {
         .forEach(p => { S.poolUsed[p.id] = true; items.push({ at: rnd(0.15, 0.88), fn: () => { if (!runEvent(p)) S.poolUsed[p.id] = false; } }); });
     }
     queue.filter(q => q.w === w).forEach(q => items.push(q));
-    C.citizenPosts.filter(p => p.w === w).forEach(p => items.push({ at: p.at, fn: () => { if (!p.when || p.when(S)) apply({ fx: p.fx, set: p.set }); } }));
+    C.citizenPosts.filter(p => p.w === w).map(p => pvOf(S, p)).forEach(p => items.push({ at: p.at, fn: () => { if (!p.when || p.when(S)) apply({ fx: p.fx, set: p.set }); } }));
     S.dnd = false;
     if (strat.dndFrom != null) {
       items.push({ at: strat.dndFrom, fn: () => {
@@ -203,7 +208,7 @@ function game(strat, progId = "centre") {
       for (let t = strat.dndFrom + rnd(0.03, 0.06); t < 1; t += rnd(0.07, 0.11)) items.push({ at: t, fn: () => { if (S.dnd) ministerAct(); } });
     }
     // publication hebdo
-    const post = strat.post && strat.post(S, C.posts[w]);
+    const post = strat.post && strat.post(S, ((C.postsBy && C.postsBy[S.programme]) || {})[w] || C.posts[w]);
     if (post) items.push({ at: 0.5, fn: () => { if (!S.dead) { spend(6); apply({ fx: post.fx }); } } });
     items.sort((a, b) => a.at - b.at);
     for (let i = 0; i < items.length && !S.ending; i++) {
@@ -394,7 +399,7 @@ function agendaLaw(S, L, ag) {
 }
 const agendaEvent = (ag, dirW) => (S, e, o) => pickBy(noEnd(o), c => {
   const fx = (typeof c.fx === "function" ? c.fx(S) : c.fx) || {};
-  const ov = C.ovEvent(e.id, e.c.indexOf(c)) + (fx.overton || 0);
+  const ov = ovOf(e, e.c.indexOf(c)) + (fx.overton || 0);
   const pull = ag.dir === 0 ? -Math.abs(ov) * dirW : ov * ag.dir * dirW;
   return smartScore(S, c) + pull - (c.leak ? c.leak.p * 6 : 0);
 });
@@ -414,7 +419,7 @@ const PROFILS = {
   traitreCentre: () => ({ event: agendaEvent(TRAHISON.centre, 0.3), law: (S, L) => agendaLaw(S, L, TRAHISON.centre), post: (S, p) => pickBy(p, c => smartScore(S, c)) }),
   // ne fait rien de son programme et laisse la rue monter
   immobile: () => ({
-    event: (S, e, o) => pickBy(noEnd(o), c => -(c.fx?.colere || 0) * -0.5 - (c.cost ?? 8) * 0.3 - Math.abs(C.ovEvent(e.id, e.c.indexOf(c))) * 0.3 - (c.fx?.gav ? 3 : 0)),
+    event: (S, e, o) => pickBy(noEnd(o), c => -(c.fx?.colere || 0) * -0.5 - (c.cost ?? 8) * 0.3 - Math.abs(ovOf(e, e.c.indexOf(c))) * 0.3 - (c.fx?.gav ? 3 : 0)),
     law: (S, L) => (L.revoke ? "contre" : S.api.isGov(L) ? "retirer" : null),
     post: () => null,
   }),

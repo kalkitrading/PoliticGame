@@ -38,7 +38,7 @@
       start: { g: { jeunes: 8, ouvriers: 10, retraites: 0, patrons: -12, police: -8 }, rel: { VP: 55, PP: 50, CA: 30, DIV: 45, DP: 20, RH: 15 } },
       promises: [
         { text: "Augmenter le SMIC", heir: "CA", state: S => (passed(S, "l_smic") || S.flags.dealSyndicat ? "ok" : "pending") },
-        { text: "Taxer les plus riches", heir: "CA", state: S => (S.flags.arrangement || passed(S, "l_heritage") || S.flags.rigueur || S.flags.gelPensions ? "broken" : S.flags.taxeRiches ? "ok" : "pending") },
+        { text: "Taxer les plus riches", heir: "CA", state: S => (S.flags.arrangement || S.flags.pauseTaxes || passed(S, "l_heritage") || S.flags.rigueur || S.flags.gelPensions ? "broken" : S.flags.taxeRiches ? "ok" : "pending") },
         { text: "Ne pas reculer l’âge de la retraite", heir: "CA", keep: true, state: S => (passed(S, "l_retraite") ? "broken" : "pending") },
         { text: "Ne jamais réprimer la rue", heir: "RH", keep: true, state: S => (repCount(S) >= 2 ? "broken" : "pending") },
       ] },
@@ -172,10 +172,11 @@
       let v = id === me
         ? 6 + p * 0.55 * (0.15 + 0.85 * Math.pow(f, 1.3)) + 10 * near(id) + (C.programme(S).incumbency || 0)  // toi : popularité × fidélité
         : BASE[id] + 14 * near(id);                                        // les autres : proches de la fenêtre = « normaux »
-      if (id === "HI" && mv.strong && !mv.mate) v += (S.colere - 40) * 0.3;   // la rue écoutée porte la gauche
+      // la rue écoutée porte la gauche… sauf quand la gauche gouverne : alors la rue, c'est la droite (prog.street)
+      if (id === (C.programme(S).street || "HI") && mv.strong && !mv.mate) v += (S.colere - 40) * 0.3;
       if (id === "RH" && mv.mate) v += 4 + repCount(S) * 1.5;                 // la rue écrasée porte la peur
       if (id === "RH") v += S.stats.fuites * 0.8 + Math.max(0, O) * 0.08;
-      if (id === "HI") v += S.stats.fuites * 0.4;
+      if (id === "HI" && id !== me) v += S.stats.fuites * 0.4;
       if (id === "VP") v += Math.max(0, S.eco - 60) * 0.25;
       v += (S.image && S.image[id]) || 0;   // coups bas, scandales, trolls
       raw[id] = Math.max(1, v);
